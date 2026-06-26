@@ -72,8 +72,13 @@ export function useLiveMonitor({ conf, iou, showToast }) {
     const finalSession = (sessionToStop && (typeof sessionToStop === 'string' || typeof sessionToStop === 'number'))
       ? sessionToStop
       : null;
-    const url = finalSession ? `/api/stop-stream?session_id=${finalSession}` : '/api/stop-stream';
-    fetch(url, { method: 'POST' }).catch(() => {});
+    
+    // Only call /api/stop-stream if there is a session running, or if activeStreamType is not NONE.
+    // This avoids sending an unnecessary global stop request during startup which races with and kills the new stream.
+    if (finalSession || activeStreamType !== STREAM_TYPES.NONE) {
+      const url = finalSession ? `/api/stop-stream?session_id=${finalSession}` : '/api/stop-stream';
+      fetch(url, { method: 'POST' }).catch(() => {});
+    }
 
     setActiveStreamType(STREAM_TYPES.NONE);
     setWsImage(null);
@@ -86,7 +91,13 @@ export function useLiveMonitor({ conf, iou, showToast }) {
     setActiveStreamType(STREAM_TYPES.WEBSOCKET);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: 1.7777777778
+        }
+      });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
@@ -125,14 +136,19 @@ export function useLiveMonitor({ conf, iou, showToast }) {
         const video = videoRef.current;
         const canvas = wsCapCanvasRef.current;
         if (!video || !canvas || ws.readyState !== WebSocket.OPEN) return;
+        
+        // Thiết lập kích thước canvas là 16:9 để không bị kéo giãn
+        canvas.width = 640;
+        canvas.height = 360;
+        
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, 640, 480);
+        ctx.drawImage(video, 0, 0, 640, 360);
         canvas.toBlob((blob) => {
           if (blob && ws.readyState === WebSocket.OPEN) {
             blob.arrayBuffer().then(buf => ws.send(buf));
           }
         }, 'image/jpeg', 0.65);
-      }, 120);
+      }, 45);
 
       showToast('Đã mở webcam laptop thành công.', 'success');
     } catch (e) {
@@ -227,6 +243,8 @@ export function useLiveMonitor({ conf, iou, showToast }) {
     }
     return () => alarmRef.current?.stop();
   }, [isAlertConfirmed, activeStreamType, isMuted, stats.fire_now, stats.fire_level]);
+
+
 
   const refreshAlerts = async () => {
     setAlerts(await fetchAlertsHistory());

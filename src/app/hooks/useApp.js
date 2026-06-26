@@ -1,33 +1,73 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { parseTabFromHash, TAB_IDS } from '../../shared/constants/tabs.js';
+import { parseTabFromPath, TAB_IDS } from '../../shared/constants/tabs.js';
 
 export function useApp() {
-  const [activeTab, setActiveTab] = useState(parseTabFromHash);
+  const [activeTab, setActiveTab] = useState(parseTabFromPath);
   const [conf, setConf] = useState(0.25);
   const [iou, setIou] = useState(0.45);
   const [serverOnline, setServerOnline] = useState(false);
   const [classes, setClasses] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [models, setModels] = useState([]);
+  const [activeModel, setActiveModel] = useState('');
+  const [loadingModel, setLoadingModel] = useState(false);
 
   const showToast = useCallback((message, type = 'info') => {
-    const id = Date.now();
+    const id = `${Date.now()}-${Math.random()}`;
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   }, []);
 
+  const fetchModels = useCallback(async () => {
+    try {
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      setModels(data.models || []);
+      setActiveModel(data.current || '');
+    } catch (e) {
+      console.error('Error fetching models:', e);
+    }
+  }, []);
+
+  const handleSelectModel = useCallback(async (modelPath) => {
+    setLoadingModel(true);
+    showToast('Đang tải và nạp mô hình AI...', 'info');
+    try {
+      const res = await fetch('/api/select-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: modelPath })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setActiveModel(data.current);
+        showToast('Đã nạp và kích hoạt mô hình AI mới thành công!', 'success');
+      } else {
+        showToast('Lỗi nạp mô hình: ' + (data.detail || 'Không xác định'), 'error');
+      }
+    } catch (e) {
+      showToast('Lỗi mạng khi nạp mô hình: ' + e.message, 'error');
+    } finally {
+      setLoadingModel(false);
+    }
+  }, [showToast]);
+
   useEffect(() => {
-    window.location.hash = `#/${activeTab}`;
+    const currentPath = window.location.pathname.replace(/^\//, '');
+    if (currentPath !== activeTab) {
+      window.history.pushState(null, '', `/${activeTab}`);
+    }
   }, [activeTab]);
 
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#/', '');
-      if (TAB_IDS.includes(hash)) setActiveTab(hash);
+    const handlePopState = () => {
+      const path = window.location.pathname.replace(/^\//, '');
+      if (TAB_IDS.includes(path)) setActiveTab(path);
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const checkServerStatus = useCallback(async () => {
@@ -68,6 +108,12 @@ export function useApp() {
     return () => clearInterval(interval);
   }, [checkServerStatus]);
 
+  useEffect(() => {
+    if (serverOnline) {
+      fetchModels();
+    }
+  }, [serverOnline, fetchModels]);
+
   return {
     activeTab,
     setActiveTab,
@@ -78,6 +124,10 @@ export function useApp() {
     serverOnline,
     classes,
     toasts,
-    showToast
+    showToast,
+    models,
+    activeModel,
+    loadingModel,
+    handleSelectModel
   };
 }

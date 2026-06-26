@@ -75,11 +75,29 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
 
   const [loading, setLoading] = useState(false);
   const [serialCommand, setSerialCommand] = useState('');
-  const [serialStatus, setSerialStatus] = useState('Cổng ảo Serial: Sẵn sàng');
-  const [serialStatusClass, setSerialStatusClass] = useState('bg-[#0b0c10] text-slate-400');
+  const [serialStatus, setSerialStatus] = useState('ESP32: Sẵn sàng');
+  const [serialStatusClass, setSerialStatusClass] = useState('bg-[#0b0c10]/40 text-slate-400 border border-slate-800');
+  const [esp32Ip, setEsp32Ip] = useState(() => {
+    return localStorage.getItem('esp32_ip') || 'http://192.168.1.17';
+  });
+  const [pumpOn, setPumpOn] = useState(false);
+  const [pumpLoading, setPumpLoading] = useState(false);
+  const [targetingMode, setTargetingMode] = useState(() => {
+    return localStorage.getItem('targeting_mode') || 'client';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('esp32_ip', esp32Ip);
+  }, [esp32Ip]);
+
+  useEffect(() => {
+    localStorage.setItem('targeting_mode', targetingMode);
+  }, [targetingMode]);
 
   const [cctvDragIndex, setCctvDragIndex] = useState(DRAG_NONE);
   const [ceilingDragIndex, setCeilingDragIndex] = useState(DRAG_NONE);
+  const [activeCornerCount, setActiveCornerCount] = useState(4);
+  const [cctvInteractionMode, setCctvInteractionMode] = useState('points'); // 'points' | 'pan'
 
   const imageRef = useRef(null);
   const cctvCanvasRef = useRef(null);
@@ -89,7 +107,7 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   const prevRoomLRef = useRef(roomL);
 
   const { threeContainerRef } = useThreeSimulator({
-    roomW, roomL, roomH, camZ, nozZ, ceilingNozzle, ceilingCctv, simulatedFire, targets, isDemoImage
+    roomW, roomL, roomH, camZ, nozZ, ceilingNozzle, ceilingCctv, simulatedFire, targets, isDemoImage, active3DTab
   });
 
   const resolveCctvLayout = () => {
@@ -116,14 +134,14 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   }, [roomW, roomL]);
 
   useEffect(() => {
-    if (!imageLoaded) return;
+    if (!imageLoaded || activeCornerCount < 4) return;
     const { HInv } = buildRoomHomography(corners, roomW, roomL);
     setJsHInv(HInv);
     if (HInv) {
       setCctvPixel(projectRealToPixel(ceilingCctv.x, ceilingCctv.y, HInv));
       setNozzlePixel(projectRealToPixel(ceilingNozzle.x, ceilingNozzle.y, HInv));
     }
-  }, [imageLoaded, corners, ceilingCctv, ceilingNozzle, roomW, roomL]);
+  }, [imageLoaded, corners, activeCornerCount, ceilingCctv, ceilingNozzle, roomW, roomL]);
 
   useEffect(() => {
     setCamZ(roomH);
@@ -149,6 +167,8 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     setCorners(getInitialCorners(img.naturalWidth, img.naturalHeight));
     setCctvZoom(1.0);
     setCctvPan({ x: 0, y: 0 });
+    setActiveCornerCount(4);
+    setCctvInteractionMode('points');
     const defaults = getScaledCeilingDefaults(roomW, roomL);
     setCeilingCctv(defaults.ceilingCctv);
     setCeilingNozzle(defaults.ceilingNozzle);
@@ -199,9 +219,10 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
       cctvPan,
       corners,
       cctvPixel,
-      nozzlePixel
+      nozzlePixel,
+      activeCornerCount
     });
-  }, [corners, cctvPixel, nozzlePixel, imageSize, imageLoaded, cctvZoom, cctvPan]);
+  }, [corners, cctvPixel, nozzlePixel, imageSize, imageLoaded, cctvZoom, cctvPan, activeCornerCount]);
 
   useEffect(() => {
     const canvas = ceilingCanvasRef.current;
@@ -253,6 +274,36 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     const { cW, cH } = layout;
     setLastCctvMouse({ x: pos.x, y: pos.y });
 
+    if (cctvInteractionMode === 'pan') {
+      if (activeCornerCount === 4) {
+        for (let i = 0; i < 4; i++) {
+          const pt = getCctvCornerHitPos(
+            imagePixelToCctvCanvas(corners[i], layout, imageSize, cctvZoom, cctvPan),
+            cW,
+            cH
+          );
+          if (Math.hypot(pos.x - pt.x, pos.y - pt.y) <= CLICK_RADIUS) {
+            setCctvDragIndex(i);
+            return;
+          }
+        }
+      }
+      setCctvDragIndex(DRAG_PAN);
+      return;
+    }
+
+    // In 'points' mode:
+    if (activeCornerCount < 4) {
+      const pixel = cctvCanvasToImagePixel(pos.x, pos.y, layout, imageSize, cctvZoom, cctvPan);
+      const newCorners = [...corners];
+      newCorners[activeCornerCount] = pixel;
+      setCorners(newCorners);
+      setCctvDragIndex(activeCornerCount);
+      setActiveCornerCount(prev => prev + 1);
+      return;
+    }
+
+    // Check if clicked directly on an existing corner point
     for (let i = 0; i < 4; i++) {
       const pt = getCctvCornerHitPos(
         imagePixelToCctvCanvas(corners[i], layout, imageSize, cctvZoom, cctvPan),
@@ -264,7 +315,23 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
         return;
       }
     }
-    setCctvDragIndex(DRAG_PAN);
+
+    // Otherwise snap closest corner to clicked point
+    const clickPixel = cctvCanvasToImagePixel(pos.x, pos.y, layout, imageSize, cctvZoom, cctvPan);
+    let minDistance = Infinity;
+    let closestIndex = 0;
+    for (let i = 0; i < 4; i++) {
+      const dist = Math.hypot(clickPixel.x - corners[i].x, clickPixel.y - corners[i].y);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = i;
+      }
+    }
+
+    const newCorners = [...corners];
+    newCorners[closestIndex] = clickPixel;
+    setCorners(newCorners);
+    setCctvDragIndex(closestIndex);
   };
 
   const handleCctvMouseMove = (e) => {
@@ -343,6 +410,8 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   const handleResetCalibration = () => {
     if (!imageSize?.w) return;
     setCorners(getInitialCorners(imageSize.w, imageSize.h));
+    setActiveCornerCount(4);
+    setCctvInteractionMode('points');
     const defaults = getScaledCeilingDefaults(roomW, roomL);
     setCeilingCctv(defaults.ceilingCctv);
     setCeilingNozzle(defaults.ceilingNozzle);
@@ -355,8 +424,19 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     showToast('Đã khôi phục các điểm hiệu chuẩn mặc định.', 'info');
   };
 
+  const handleStartSequentialPlacement = () => {
+    if (!imageLoaded) return;
+    setActiveCornerCount(0);
+    setCctvInteractionMode('points');
+    showToast('Vui lòng click 4 điểm trên ảnh để định vị 4 góc sàn (C1 -> C4).', 'info');
+  };
+
   const handleProcessTargeting = async () => {
     if (!imageLoaded) return;
+    if (activeCornerCount < 4) {
+      showToast('Vui lòng chấm đủ 4 điểm hiệu chuẩn góc sàn trước khi thực hiện nhắm bắn.', 'warning');
+      return;
+    }
     setLoading(true);
     setRawOutput('Đang kết nối API xử lý ngắm bắn...');
     showToast('Đang phân tích định vị mục tiêu...', 'info');
@@ -385,6 +465,8 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
       formData.append('conf', conf);
       formData.append('iou', iou);
       formData.append('mock_detect', isDemoImage ? 'true' : 'false');
+      formData.append('targeting_mode', targetingMode);
+      formData.append('esp32_ip', esp32Ip);
       if (isDemoImage && jsHInv) {
         const simPixel = projectRealToPixel(simulatedFire.x, simulatedFire.y, jsHInv);
         formData.append('simulated_fire_json', JSON.stringify([simPixel.x, simPixel.y]));
@@ -396,16 +478,58 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
         setTargets(data.targets || []);
         if (data.plot_3d) setPlot3d(data.plot_3d);
         if (data.targets?.length > 0) {
-          setSerialCommand(data.targets[0].serial);
-          setRawOutput(
+          const target = data.targets[0];
+          setSerialCommand(target.serial);
+
+          const logMsg =
             `[SUCCESS] Đã bắn mục tiêu hỏa hoạn!\n` +
-            `- Lớp phát hiện: ${data.targets[0].class_name}\n` +
-            `- Tọa độ Oxy: [${data.targets[0].real[0].toFixed(2)}, ${data.targets[0].real[1].toFixed(2)}]m\n` +
-            `- Góc Pan: ${data.targets[0].pan}° | Góc Tilt: ${data.targets[0].tilt}°\n` +
-            `- Delta Pan: ${data.targets[0].pan_dir || ''}${data.targets[0].pan_delta || 0}° | Delta Tilt: ${data.targets[0].tilt_dir || ''}${data.targets[0].tilt_delta || 0}°\n` +
-            `- Lệnh Serial gửi đi: ${data.targets[0].serial}`
-          );
+            `- Lớp phát hiện: ${target.class_name}\n` +
+            `- Tọa độ Oxy: [${target.real[0].toFixed(2)}, ${target.real[1].toFixed(2)}]m\n` +
+            `- Góc Pan: ${Number(target.pan).toFixed(2)}° | Góc Tilt: ${Number(target.tilt).toFixed(2)}°\n` +
+            `- Delta Pan: ${target.pan_dir || ''}${Number(target.pan_delta || 0).toFixed(1)}° | Delta Tilt: ${target.tilt_dir || ''}${Number(target.tilt_delta || 0).toFixed(1)}°\n` +
+            `- Lệnh Serial gửi đi: ${target.serial}`;
+
+          setRawOutput(logMsg);
           showToast('Nhắm bắn mục tiêu thành công!', 'success');
+
+          if (targetingMode === 'server') {
+            setSerialStatus(`Đã truyền (Server-side)`);
+            setSerialStatusClass('bg-emerald-950/20 text-emerald-400 border border-emerald-900/20');
+            showToast('Lệnh ngắm bắn đang được Server tự động truyền tới ESP32.', 'info');
+          } else {
+            // Tự động truyền lệnh điều khiển motor tới ESP32 qua API (Client-side)
+            const cmd = target.serial;
+            if (cmd) {
+              const regex = /([UDLR])(\d+(?:\.\d+)?)/g;
+              let match;
+              const subCommands = [];
+              while ((match = regex.exec(cmd)) !== null) {
+                subCommands.push(match[1] + Math.round(parseFloat(match[2])));
+              }
+
+              if (subCommands.length > 0) {
+                setSerialStatus(`Đang gửi lệnh tới ESP32...`);
+                setSerialStatusClass('bg-[#181a24] text-indigo-400 border border-indigo-900/50 animate-pulse');
+
+                try {
+                  const cleanIp = esp32Ip.replace(/\/$/, '');
+                  for (const sub of subCommands) {
+                    const response = await fetch(`${cleanIp}/run?cmd=${sub}`);
+                    if (!response.ok) {
+                      throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                  }
+                  setSerialStatus(`Đã truyền: ${cmd}`);
+                  setSerialStatusClass('bg-emerald-950/20 text-emerald-400 border border-emerald-900/20');
+                  showToast('Đã đồng bộ lệnh điều khiển tới ESP32.', 'success');
+                } catch (e) {
+                  setSerialStatus(`Lỗi gửi: ${e.message}`);
+                  setSerialStatusClass('bg-red-950/20 text-red-400 border border-red-900/20');
+                  showToast('Lỗi truyền thông tới ESP32.', 'error');
+                }
+              }
+            }
+          }
         } else {
           setRawOutput('[SUCCESS] Hoàn thành phân tích: Không phát hiện ngọn lửa/khói nào.');
           showToast('Hoàn tất phân tích. Không phát hiện hỏa hoạn.', 'success');
@@ -474,6 +598,27 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     }
   };
 
+  const handleTogglePump = async () => {
+    if (!esp32Ip) {
+      showToast('Vui lòng nhập IP ESP32.', 'warning');
+      return;
+    }
+    const nextStatus = !pumpOn;
+    setPumpOn(nextStatus);
+    setPumpLoading(true);
+    try {
+      const cleanIp = esp32Ip.replace(/\/$/, '');
+      const response = await fetch(`${cleanIp}/pump?state=${nextStatus ? 'on' : 'off'}`, { method: 'POST' });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      showToast(`Mô tơ đã được ${nextStatus ? 'bật' : 'tắt'}!`, 'success');
+    } catch (err) {
+      setPumpOn(!nextStatus);
+      showToast(`Lỗi kết nối tới ESP32 tại ${esp32Ip}.`, 'error');
+    } finally {
+      setPumpLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadDemoImage();
   }, []);
@@ -536,6 +681,13 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     handleResetServo,
     resetCeilingView,
     resetCctvView,
-    singleTarget: targets.length > 0 ? targets[0] : null
+    singleTarget: targets.length > 0 ? targets[0] : null,
+    esp32Ip, setEsp32Ip,
+    pumpOn, setPumpOn,
+    pumpLoading, handleTogglePump,
+    targetingMode, setTargetingMode,
+    activeCornerCount, setActiveCornerCount,
+    cctvInteractionMode, setCctvInteractionMode,
+    handleStartSequentialPlacement
   };
 }

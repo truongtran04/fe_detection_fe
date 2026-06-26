@@ -19,7 +19,7 @@ export const TAB_META = {
   }
 };
 
-export const parseTabFromHash = () => {
-  const hash = window.location.hash.replace('#/', '');
-  return TAB_IDS.includes(hash) ? hash : 'live';
+export const parseTabFromPath = () => {
+  const path = window.location.pathname.replace(/^\//, '');
+  return TAB_IDS.includes(path) ? path : 'live';
 };

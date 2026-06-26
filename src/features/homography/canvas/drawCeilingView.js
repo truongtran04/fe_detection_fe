@@ -88,10 +88,10 @@ export const drawCeilingView = (ctx, w, h, {
   ctx.fillText(`W=${roomW}m`, cMidLeft.cx - 4, cMidLeft.cy);
 
   const cornerLabels2D = [
-    { pt: c1, label: 'G1', align: 'right', baseline: 'bottom' },
-    { pt: c2, label: 'G2', align: 'left', baseline: 'bottom' },
-    { pt: c3, label: 'G3', align: 'left', baseline: 'top' },
-    { pt: c4, label: 'G4', align: 'right', baseline: 'top' },
+    { pt: c1, label: 'C1', align: 'right', baseline: 'bottom' },
+    { pt: c2, label: 'C2', align: 'left', baseline: 'bottom' },
+    { pt: c3, label: 'C3', align: 'left', baseline: 'top' },
+    { pt: c4, label: 'C4', align: 'right', baseline: 'top' },
   ];
   cornerLabels2D.forEach(({ pt, label, align, baseline }) => {
     const ox = align === 'left' ? 5 : -5;

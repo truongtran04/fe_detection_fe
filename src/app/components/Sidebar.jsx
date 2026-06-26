@@ -1,17 +1,18 @@
 import { FileImage, ShieldAlert, Target, Tv, Cpu, SlidersHorizontal, History } from 'lucide-react';
 
-export function Sidebar({ activeTab, setActiveTab, serverOnline, classes, conf, setConf, iou, setIou, sidebarOpen }) {
+export function Sidebar({ activeTab, setActiveTab, serverOnline, classes, conf, setConf, iou, setIou, sidebarOpen, models = [], activeModel = '', loadingModel = false, handleSelectModel }) {
   const tabClass = (tab) =>
-    `w-full flex items-center transition-all duration-300 rounded-2xl text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
-      activeTab === tab
-        ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30'
-        : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+    `w-full flex items-center transition-all duration-300 rounded-2xl text-[11px] font-bold uppercase tracking-wider cursor-pointer ${activeTab === tab
+      ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30'
+      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
     } ${sidebarOpen ? 'px-4 py-3.5 gap-3.5 justify-start' : 'p-3.5 justify-center'}`;
 
+  const activeModelObj = models.find(m => m.path === activeModel);
+  const activeModelName = activeModelObj ? activeModelObj.name : 'Fire Best';
+
   return (
-    <aside className={`bg-[#121318]/95 flex flex-col shrink-0 text-left relative z-20 shadow-2xl transition-all duration-300 ${
-      sidebarOpen ? 'w-72' : 'w-20'
-    }`}>
+    <aside className={`bg-[#121318]/95 flex flex-col shrink-0 text-left relative z-20 shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'
+      }`}>
       {/* Header Logo */}
       <div className={`p-6 flex items-center gap-3 transition-all duration-300 ${sidebarOpen ? 'justify-start' : 'justify-center'}`}>
         <div className="p-2.5 bg-red-500/10 rounded-2xl">
@@ -40,9 +41,31 @@ export function Sidebar({ activeTab, setActiveTab, serverOnline, classes, conf, 
             </div>
             <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
               <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Model:</span>
-              <span className="truncate max-w-[130px] text-slate-400 font-bold">YOLOv8 best.pt</span>
+              <span className="truncate max-w-[130px] text-slate-400 font-bold" title={activeModelName}>{activeModelName}</span>
             </div>
           </div>
+
+          {/* Mô hình AI nhận dạng */}
+          {models.length > 0 && (
+            <div className="mx-4 my-1 px-4 py-3 bg-[#181a24] rounded-2xl flex flex-col gap-2.5 shadow-inner shrink-0">
+              <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Mô hình AI nhận dạng:</span>
+              </div>
+              <select
+                value={activeModel}
+                onChange={(e) => handleSelectModel(e.target.value)}
+                disabled={loadingModel}
+                className="w-full bg-[#121318] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none cursor-pointer border border-slate-800/80 hover:border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {models.map((model) => (
+                  <option key={model.path} value={model.path}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Ngưỡng nhận diện */}
           <div className="mx-4 my-1 px-4 py-3 bg-[#181a24] rounded-2xl flex flex-col gap-3 shadow-inner shrink-0">

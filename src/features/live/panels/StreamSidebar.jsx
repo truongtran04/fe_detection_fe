@@ -1,4 +1,4 @@
-import { Activity, Camera, Play, Square, Upload } from 'lucide-react';
+import { Activity, Camera, Play, Square, Upload, Cpu } from 'lucide-react';
 import { STREAM_TYPES } from '../constants.js';
 
 export function StreamSidebar({
@@ -9,7 +9,7 @@ export function StreamSidebar({
   isDragActive,
   stats,
   handleStartWebSocket, handleStartMJPEG, handleStopStream,
-  handleFileSubmit, handleDrag, handleDrop
+  handleFileSubmit, handleDrag, handleDrop,
 }) {
   return (
     <div className="lg:col-span-1 space-y-6">
@@ -18,7 +18,7 @@ export function StreamSidebar({
           <div className="p-2 bg-indigo-500/10 rounded-xl">
             <Camera className="w-5 h-5 text-indigo-400 shrink-0" />
           </div>
-          <h2 className="font-bold text-sm">Nguồn Camera</h2>
+          <h2 className="font-bold text-sm">Nguồn Camera & AI</h2>
         </div>
 
         <div className="space-y-3">

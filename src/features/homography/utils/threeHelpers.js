@@ -29,19 +29,19 @@ export const createTiltArcGeometry = (nx, ny, nz, tx, ty, tz, radius = 0.6) => {
 
 export const createTextSprite = (text, color = '#f97316') => {
   const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 64;
+  canvas.width = 128;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d');
 
   ctx.fillStyle = color;
-  ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+  ctx.font = 'bold 44px "Plus Jakarta Sans", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, 32, 32);
+  ctx.fillText(text, 64, 64);
 
   const texture = new THREE.CanvasTexture(canvas);
   const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(0.3, 0.3, 1.0);
+  sprite.scale.set(0.45, 0.45, 1.0);
   return sprite;
 };

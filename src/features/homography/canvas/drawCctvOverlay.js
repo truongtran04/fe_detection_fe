@@ -40,7 +40,8 @@ export const drawCctvOverlay = (ctx, {
   cctvPan,
   corners,
   cctvPixel,
-  nozzlePixel
+  nozzlePixel,
+  activeCornerCount = 4
 }) => {
   const { cW, cH } = layout;
   ctx.clearRect(0, 0, cW, cH);
@@ -50,34 +51,47 @@ export const drawCctvOverlay = (ctx, {
   const cNozzle = toCanvas(nozzlePixel);
   const cCctv = toCanvas(cctvPixel);
 
-  ctx.fillStyle = 'rgba(99,102,241,0.06)';
-  ctx.strokeStyle = '#6366f1';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cCorners[0].x, cCorners[0].y);
-  for (let i = 1; i < 4; i++) ctx.lineTo(cCorners[i].x, cCorners[i].y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  if (activeCornerCount > 0) {
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cCorners[0].x, cCorners[0].y);
+    for (let i = 1; i < activeCornerCount; i++) {
+      ctx.lineTo(cCorners[i].x, cCorners[i].y);
+    }
+    if (activeCornerCount === 4) {
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(99,102,241,0.06)';
+      ctx.fill();
+    }
+    ctx.stroke();
+  }
 
-  cCorners.forEach((pt, idx) => drawCornerOrArrow(ctx, pt, idx, CORNER_LABELS, cW, cH));
+  // Draw only the corners that have been placed
+  for (let i = 0; i < activeCornerCount; i++) {
+    drawCornerOrArrow(ctx, cCorners[i], i, CORNER_LABELS, cW, cH);
+  }
 
-  ctx.setLineDash([4, 4]);
-  ctx.strokeStyle = '#0ea5e9';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cCctv.x, cCctv.y); ctx.lineTo(cNozzle.x, cNozzle.y); ctx.stroke();
-  ctx.setLineDash([]);
+  // Only draw targeting helper line and target markers if calibration is complete
+  if (activeCornerCount === 4) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#0ea5e9';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cCctv.x, cCctv.y); ctx.lineTo(cNozzle.x, cNozzle.y); ctx.stroke();
+    ctx.setLineDash([]);
 
-  ctx.beginPath(); ctx.arc(cNozzle.x, cNozzle.y, 8, 0, 2 * Math.PI);
-  ctx.fillStyle = '#d946ef'; ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.fillStyle = '#d946ef'; ctx.font = 'bold 9px Inter';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.fillText('Vòi Phun', cNozzle.x + 11, cNozzle.y - 7);
+    ctx.beginPath(); ctx.arc(cNozzle.x, cNozzle.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = '#d946ef'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#d946ef'; ctx.font = 'bold 9px Inter';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('Vòi Phun', cNozzle.x + 11, cNozzle.y - 7);
 
-  ctx.beginPath(); ctx.arc(cCctv.x, cCctv.y, 8, 0, 2 * Math.PI);
-  ctx.fillStyle = '#eab308'; ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.fillStyle = '#eab308'; ctx.font = 'bold 9px Inter';
-  ctx.fillText('CCTV', cCctv.x + 11, cCctv.y - 7);
+    ctx.beginPath(); ctx.arc(cCctv.x, cCctv.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = '#eab308'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#eab308'; ctx.font = 'bold 9px Inter';
+    ctx.fillText('CCTV', cCctv.x + 11, cCctv.y - 7);
+  }
 };
+

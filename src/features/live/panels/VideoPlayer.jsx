@@ -27,8 +27,8 @@ export function VideoPlayer({
         </div>
 
         <div className="flex-1 bg-[#0b0c10] rounded-2xl flex items-center justify-center relative overflow-hidden min-h-[340px] shadow-inner">
-          <video ref={videoRef} className="hidden" width="640" height="480" playsInline muted></video>
-          <canvas ref={wsCapCanvasRef} className="hidden" width="640" height="480"></canvas>
+          <video ref={videoRef} className="hidden" width="640" height="360" playsInline muted></video>
+          <canvas ref={wsCapCanvasRef} className="hidden" width="640" height="360"></canvas>
 
           {activeStreamType === STREAM_TYPES.NONE && (
             <div className="text-center p-8 text-slate-600 flex flex-col items-center gap-3 animate-fade-in">
@@ -52,14 +52,16 @@ export function VideoPlayer({
           )}
 
           {activeStreamType === STREAM_TYPES.WEBSOCKET && (
-            wsImage ? (
-              <img src={wsImage} className="w-full h-full object-contain rounded-2xl" alt="WebSocket Active Stream" />
-            ) : (
-              <div className="text-center p-6 text-slate-500 flex flex-col items-center gap-2 animate-fade-in">
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-xs font-semibold">Đang liên kết thiết bị webcam...</p>
-              </div>
-            )
+            <div className="w-full max-h-full aspect-video rounded-2xl overflow-hidden flex items-center justify-center bg-black">
+              {wsImage ? (
+                <img src={wsImage} className="w-full h-full object-contain" alt="WebSocket Active Stream" />
+              ) : (
+                <div className="text-center p-6 text-slate-500 flex flex-col items-center gap-2 animate-fade-in">
+                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs font-semibold">Đang liên kết thiết bị webcam...</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

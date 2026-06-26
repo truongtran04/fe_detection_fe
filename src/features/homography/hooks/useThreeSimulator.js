@@ -4,18 +4,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { PARTICLE_COUNT } from '../constants.js';
 import { createTiltArcGeometry, createTextSprite } from '../utils/threeHelpers.js';
 
-export function useThreeSimulator({
-  roomW,
-  roomL,
-  roomH,
-  camZ,
-  nozZ,
-  ceilingNozzle,
-  ceilingCctv,
-  simulatedFire,
-  targets,
-  isDemoImage
-}) {
+export function useThreeSimulator(props) {
+  const roomW = parseFloat(props.roomW) || 6.0;
+  const roomL = parseFloat(props.roomL) || 6.0;
+  const roomH = parseFloat(props.roomH) || 3.0;
+  const camZ = parseFloat(props.camZ) || 3.0;
+  const nozZ = parseFloat(props.nozZ) || 3.0;
+  const { ceilingNozzle, ceilingCctv, simulatedFire, targets, isDemoImage, active3DTab } = props;
   const threeContainerRef = useRef(null);
   const sceneRef = useRef(null);
   const controlsRef = useRef(null);
@@ -37,7 +32,15 @@ export function useThreeSimulator({
     tiltLabelSprite: null,
     panArc: null,
     panLabelSprite: null,
-    cornerLabels: []
+    cornerLabels: [],
+    axisX: null,
+    axisY: null,
+    axisZ: null,
+    labelOx: null,
+    labelOy: null,
+    labelOz: null,
+    nozzleLocalXArrow: null,
+    labelNozzleX: null
   });
 
   const animateWater = () => {
@@ -146,8 +149,11 @@ export function useThreeSimulator({
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+      sceneRef.current = null;
+      controlsRef.current = null;
+      waterParticlesRef.current = null;
     };
-  }, []);
+  }, [active3DTab]);
 
   useEffect(() => {
     const scene = sceneRef.current;
@@ -165,6 +171,9 @@ export function useThreeSimulator({
       refs.laserBeam, refs.fireMarker, waterParticlesRef.current,
       refs.panRefLine, refs.panDirLine, refs.tiltArc, refs.tiltRefLine,
       refs.tiltLabelSprite, refs.panArc, refs.panLabelSprite,
+      refs.axisX, refs.axisY, refs.axisZ,
+      refs.labelOx, refs.labelOy, refs.labelOz,
+      refs.nozzleLocalXArrow, refs.labelNozzleX,
       ...refs.cornerLabels
     ].forEach(obj => { if (obj) scene.remove(obj); });
     refs.cornerLabels = [];
@@ -260,8 +269,8 @@ export function useThreeSimulator({
       const panRad = Math.atan2(dz, dx);
 
       const pRef = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(nx, roomH, ny),
-        new THREE.Vector3(nx + 0.4, roomH, ny)
+        new THREE.Vector3(nx, nozZ, ny),
+        new THREE.Vector3(nx + 0.4, nozZ, ny)
       ]);
       const pRefLine = new THREE.Line(pRef, new THREE.LineDashedMaterial({ color: 0x64748b, dashSize: 0.03, gapSize: 0.015 }));
       pRefLine.computeLineDistances();
@@ -269,15 +278,15 @@ export function useThreeSimulator({
       refs.panRefLine = pRefLine;
 
       const pDir = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(nx, roomH, ny),
-        new THREE.Vector3(nx + 0.4 * Math.cos(panRad), roomH, ny + 0.4 * Math.sin(panRad))
+        new THREE.Vector3(nx, nozZ, ny),
+        new THREE.Vector3(nx + 0.4 * Math.cos(panRad), nozZ, ny + 0.4 * Math.sin(panRad))
       ]);
       const pDirLine = new THREE.Line(pDir, new THREE.LineBasicMaterial({ color: 0x0ea5e9 }));
       scene.add(pDirLine);
       refs.panDirLine = pDirLine;
 
       const tiltArcRadius = 0.3;
-      const tiltArcGeom = createTiltArcGeometry(nx, ny, roomH, tx, ty, 0.05, tiltArcRadius);
+      const tiltArcGeom = createTiltArcGeometry(nx, ny, nozZ, tx, ty, 0.05, tiltArcRadius);
       if (tiltArcGeom) {
         const tiltArcMesh = new THREE.Mesh(tiltArcGeom, new THREE.MeshBasicMaterial({ color: 0xf97316 }));
         scene.add(tiltArcMesh);
@@ -285,16 +294,16 @@ export function useThreeSimulator({
       }
 
       const horizDir = new THREE.Vector3(tx - nx, 0, ty - ny);
-      const arcEndVec = new THREE.Vector3(tx - nx, 0.05 - roomH, ty - ny).normalize();
+      const arcEndVec = new THREE.Vector3(tx - nx, 0.05 - nozZ, ty - ny).normalize();
 
-      let labelX = nx, labelY = roomH - 0.5, labelZ = ny;
+      let labelX = nx, labelY = nozZ - 0.5, labelZ = ny;
       if (horizDir.lengthSq() > 1e-6) {
         const arcStartVec = horizDir.normalize();
 
         // Vẽ đoạn thẳng ngang ngắn từ nozzle (tâm trần) cho góc tilt chạm vào (Nét liền, dài 0.6m)
         const tRefGeom = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(nx, roomH, ny),
-          new THREE.Vector3(nx + arcStartVec.x * 0.6, roomH, ny + arcStartVec.z * 0.6)
+          new THREE.Vector3(nx, nozZ, ny),
+          new THREE.Vector3(nx + arcStartVec.x * 0.6, nozZ, ny + arcStartVec.z * 0.6)
         ]);
         const tRefLine = new THREE.Line(
           tRefGeom,
@@ -309,7 +318,7 @@ export function useThreeSimulator({
         if (arcAxis.lengthSq() > 1e-6) {
           const midPt = arcStartVec.clone().applyAxisAngle(arcAxis, arcAngle / 2).multiplyScalar(0.36);
           labelX = nx + midPt.x;
-          labelY = roomH + midPt.y;
+          labelY = nozZ + midPt.y;
           labelZ = ny + midPt.z;
         }
       }
@@ -327,7 +336,7 @@ export function useThreeSimulator({
         const theta = panArcStart + (panRad - panArcStart) * (i / panArcSteps);
         panArcPoints.push(new THREE.Vector3(
           nx + panArcRadius * Math.cos(theta),
-          roomH,
+          nozZ,
           ny + panArcRadius * Math.sin(theta)
         ));
       }
@@ -343,7 +352,7 @@ export function useThreeSimulator({
       const panLabelSprite = createTextSprite('θ', '#38bdf8');
       panLabelSprite.position.set(
         nx + (panArcRadius + 0.18) * Math.cos(panMidAngle),
-        roomH,
+        nozZ,
         ny + (panArcRadius + 0.18) * Math.sin(panMidAngle)
       );
       scene.add(panLabelSprite);
@@ -353,10 +362,10 @@ export function useThreeSimulator({
     }
 
     const cornerDefs = [
-      { label: 'TL', x: -roomL / 2, z: -roomW / 2 },
-      { label: 'TR', x: roomL / 2, z: -roomW / 2 },
-      { label: 'BR', x: roomL / 2, z: roomW / 2 },
-      { label: 'BL', x: -roomL / 2, z: roomW / 2 },
+      { label: 'C1', x: -roomL / 2, z: -roomW / 2 },
+      { label: 'C2', x: roomL / 2, z: -roomW / 2 },
+      { label: 'C3', x: roomL / 2, z: roomW / 2 },
+      { label: 'C4', x: -roomL / 2, z: roomW / 2 },
     ];
     refs.cornerLabels = cornerDefs.map(({ label, x, z }) => {
       const s = createTextSprite(label, '#6366f1');
@@ -365,7 +374,58 @@ export function useThreeSimulator({
       scene.add(s);
       return s;
     });
-  }, [roomW, roomL, roomH, ceilingNozzle, ceilingCctv, simulatedFire, targets, isDemoImage, camZ, nozZ]);
+
+    // Global axes: Ox, Oy, Oz
+    // Ox axis (along +X)
+    const dirX = new THREE.Vector3(1, 0, 0);
+    const origin = new THREE.Vector3(0, 0.01, 0);
+    const lenX = w / 2 + 0.5;
+    const arrowX = new THREE.ArrowHelper(dirX, origin, lenX, 0xef4444, 0.15, 0.08);
+    scene.add(arrowX);
+    refs.axisX = arrowX;
+
+    const labelOx = createTextSprite('Ox', '#ef4444');
+    labelOx.position.set(lenX + 0.15, 0.1, 0);
+    scene.add(labelOx);
+    refs.labelOx = labelOx;
+
+    // Oy axis (along -Z, representing +Oy in room coordinates)
+    const dirY = new THREE.Vector3(0, 0, -1);
+    const lenY = l / 2 + 0.5;
+    const arrowY = new THREE.ArrowHelper(dirY, origin, lenY, 0x22c55e, 0.15, 0.08);
+    scene.add(arrowY);
+    refs.axisY = arrowY;
+
+    const labelOy = createTextSprite('Oy', '#22c55e');
+    labelOy.position.set(0, 0.1, -(lenY + 0.15));
+    scene.add(labelOy);
+    refs.labelOy = labelOy;
+
+    // Oz axis (along +Y)
+    const dirZ = new THREE.Vector3(0, 1, 0);
+    const lenZ = h + 0.5;
+    const arrowZ = new THREE.ArrowHelper(dirZ, origin, lenZ, 0x3b82f6, 0.15, 0.08);
+    scene.add(arrowZ);
+    refs.axisZ = arrowZ;
+
+    const labelOz = createTextSprite('Oz', '#3b82f6');
+    labelOz.position.set(0, lenZ + 0.15, 0);
+    scene.add(labelOz);
+    refs.labelOz = labelOz;
+
+    // Local X-axis of nozzle (pointing right, along +X)
+    const localXDir = new THREE.Vector3(1, 0, 0);
+    const localXOrigin = new THREE.Vector3(nx, nozZ, ny);
+    const localXLen = 0.5;
+    const nozzleLocalXArrow = new THREE.ArrowHelper(localXDir, localXOrigin, localXLen, 0xd946ef, 0.12, 0.06);
+    scene.add(nozzleLocalXArrow);
+    refs.nozzleLocalXArrow = nozzleLocalXArrow;
+
+    const labelNozzleX = createTextSprite('x_vp', '#d946ef');
+    labelNozzleX.position.set(nx + localXLen + 0.15, nozZ, ny);
+    scene.add(labelNozzleX);
+    refs.labelNozzleX = labelNozzleX;
+  }, [roomW, roomL, roomH, ceilingNozzle, ceilingCctv, simulatedFire, targets, isDemoImage, camZ, nozZ, active3DTab]);
 
   return { threeContainerRef };
 }

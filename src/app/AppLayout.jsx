@@ -18,7 +18,11 @@ export function AppLayout({
   serverOnline,
   classes,
   toasts,
-  showToast
+  showToast,
+  models,
+  activeModel,
+  loadingModel,
+  handleSelectModel
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -47,6 +51,10 @@ export function AppLayout({
         iou={iou}
         setIou={setIou}
         sidebarOpen={sidebarOpen}
+        models={models}
+        activeModel={activeModel}
+        loadingModel={loadingModel}
+        handleSelectModel={handleSelectModel}
       />
 
       <main className="flex-1 flex flex-col bg-[#0b0c10] overflow-hidden relative">

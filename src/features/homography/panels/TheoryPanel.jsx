@@ -13,8 +13,8 @@ export function TheoryPanel() {
             <li><strong>Hệ trục Oxyz:</strong> Gốc O(0,0,0) tại tâm sàn. Ox là trục ngang, Oy trục dọc, Oz trục đứng hướng lên trần.</li>
             <li><strong>Vòi Phun S:</strong> Toạ độ không gian thực <code className="text-pink-400">(X_s, Y_s, Z_s)</code>.</li>
             <li><strong>Điểm Đám Cháy F:</strong> Toạ độ thực sàn <code className="text-red-400">(X_f, Y_f, 0)</code> tìm được thông qua ánh xạ Homography H từ ảnh CCTV.</li>
-            <li><strong>Góc Pan (θ):</strong> arctan2(Y_f - Y_s, X_f - X_s) → [-180°, 180°]</li>
-            <li><strong>Góc Tilt (α):</strong> arctan2(Z_s, D) → [0°, 90°] <span className="text-slate-500">(0° = ngang trần, 90° = thẳng xuống sàn)</span></li>
+            <li><strong>Góc Pan (θ):</strong> arctan2(Y_f - Y_s, X_f - X_s) → [-180°, 180°] <span className="text-slate-500">(Trục X cục bộ của vòi phun hướng về bên phải)</span></li>
+            <li><strong>Góc Tilt (α):</strong> arctan2(Z_s, D) → [0°, 90°] <span className="text-slate-500">(0° = song song mặt sàn, 90° = thẳng đứng hướng xuống sàn)</span></li>
           </ul>
         </div>
 
@@ -25,27 +25,27 @@ export function TheoryPanel() {
               <span className="text-slate-200 font-bold">Nguyên lý hoạt động:</span>
               <p className="text-slate-500 pl-4 mt-0.5">
                 Backend theo dõi <strong className="text-indigo-400">vị trí servo hiện tại</strong> và tính <strong className="text-emerald-400">delta (chênh lệch)</strong> giữa góc mục tiêu và góc hiện tại. 
-                ESP32 nhận lệnh quay tương đối thay vì tuyệt đối.
+                ESP32 nhận lệnh quay tương đối thông qua API WiFi.
               </p>
             </div>
             <div>
               <span className="text-slate-200 font-bold">Pan (quay ngang):</span>
               <p className="text-slate-500 pl-4 mt-0.5">
-                <code className="text-emerald-400">U</code> = quay chiều dương (0° → 180°), <code className="text-red-400">D</code> = quay chiều âm (0° → -180°).
-                <br/>Ví dụ: Vị trí 0° → mục tiêu -63° → <code className="text-yellow-400">D63</code>. Tiếp mục tiêu 140° → delta = 203° → <code className="text-yellow-400">U203</code>.
+                <code className="text-emerald-400">L</code> = quay trái (chiều dương), <code className="text-red-400">R</code> = quay phải (chiều âm).
+                <br/>Ví dụ: Vị trí 0° → mục tiêu -63° → <code className="text-yellow-400">R63</code>. Tiếp mục tiêu 140° → delta = 203° → <code className="text-yellow-400">L203</code>.
               </p>
             </div>
             <div>
               <span className="text-slate-200 font-bold">Tilt (nghiêng dọc):</span>
               <p className="text-slate-500 pl-4 mt-0.5">
-                <code className="text-emerald-400">R</code> = nghiêng xuống sàn (→ 90°), <code className="text-red-400">L</code> = nghiêng lên trần (→ 0°).
-                <br/>Ví dụ: Vị trí 87° → mục tiêu 30° → delta = -57° → <code className="text-yellow-400">L57</code>. Tiếp mục tiêu 76° → <code className="text-yellow-400">R46</code>.
+                <code className="text-emerald-400">D</code> = nghiêng xuống sàn (→ 90°), <code className="text-red-400">U</code> = nghiêng hướng lên trần (→ 0°).
+                <br/>Ví dụ: Vị trí 90° (thẳng đứng) → mục tiêu 30° (nghiêng lên) → delta = -60° → <code className="text-yellow-400">U60</code>. Tiếp mục tiêu 70° (nghiêng xuống) → delta = +40° → <code className="text-yellow-400">D40</code>.
               </p>
             </div>
             <div>
-              <span className="text-slate-200 font-bold">Format Serial:</span>
+              <span className="text-slate-200 font-bold">Format API Lệnh:</span>
               <p className="text-slate-500 pl-4 mt-0.5">
-                <code className="text-yellow-400 text-sm">&lt;D63,L57&gt;</code> — Pan quay Down 63°, Tilt quay Left 57°. Nút <strong className="text-pink-400">Reset Servo</strong> sẽ gửi lệnh quay về gốc (0°, 0°).
+                <code className="text-yellow-400 text-sm">&lt;R63,D57&gt;</code> — Pan quay Right 63°, Tilt quay Down 57°. Nút <strong className="text-pink-400">Reset Servo</strong> sẽ gửi lệnh HOME để motor đưa thiết bị về vị trí ban đầu (0°, 0°).
               </p>
             </div>
           </div>

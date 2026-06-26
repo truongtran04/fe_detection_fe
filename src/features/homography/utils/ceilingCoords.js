@@ -43,10 +43,10 @@ export const getNearestCorner = (rx, ry, roomW, roomL) => {
   const w_half = roomW / 2;
   const l_half = roomL / 2;
   const cornersList = [
-    { name: 'Góc 1 (TL)', x: -l_half, y: w_half },
-    { name: 'Góc 2 (TR)', x: l_half, y: w_half },
-    { name: 'Góc 3 (BR)', x: l_half, y: -w_half },
-    { name: 'Góc 4 (BL)', x: -l_half, y: -w_half }
+    { name: 'Góc C1 (TL)', x: -l_half, y: w_half },
+    { name: 'Góc C2 (TR)', x: l_half, y: w_half },
+    { name: 'Góc C3 (BR)', x: l_half, y: -w_half },
+    { name: 'Góc C4 (BL)', x: -l_half, y: -w_half }
   ];
   let minD = Infinity;
   let nearest = cornersList[0];
