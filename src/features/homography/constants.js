@@ -9,7 +9,7 @@ export const CLICK_RADIUS = 15;
 export const PARTICLE_COUNT = 100;
 export const CANVAS_ROOM_SCALE = 0.72;
 
-export const ZOOM_MIN = 0.5;
+export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 5.0;
 export const ZOOM_FACTOR = 1.1;
 

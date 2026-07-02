@@ -54,8 +54,8 @@ export function AlertsHistoryTab({ showToast }) {
       {/* Header Panel */}
       <div className="glass-panel rounded-3xl p-6 flex justify-between items-center flex-wrap gap-4 text-left">
         <div className="flex items-center gap-3">
-          <div className="p-3.5 bg-indigo-500/10 rounded-2xl">
-            <History className="w-6 h-6 text-indigo-400" />
+          <div className="p-3.5 bg-sky-500/10 rounded-2xl">
+            <History className="w-6 h-6 text-sky-400" />
           </div>
           <div>
             <h2 className="font-extrabold text-lg tracking-tight text-white m-0">NHẬT KÝ BÁO ĐỘNG HỎA HOẠN</h2>
@@ -77,7 +77,7 @@ export function AlertsHistoryTab({ showToast }) {
         <div className="bg-[#0b0c10] rounded-2xl overflow-hidden min-h-[300px] shadow-inner">
           {loading ? (
             <div className="flex items-center justify-center p-20 text-slate-400 text-xs font-semibold">
-              <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+              <div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mr-3"></div>
               Đang tải danh sách sự cố từ PostgreSQL...
             </div>
           ) : alerts.length === 0 ? (
@@ -114,9 +114,9 @@ export function AlertsHistoryTab({ showToast }) {
                       return (
                         <Fragment key={al.id}>
                           {isNewDate && (
-                            <tr className="bg-indigo-950/20 text-indigo-400 font-bold border-y border-[#181a24] select-none">
+                            <tr className="bg-sky-950/20 text-sky-400 font-bold border-y border-[#181a24] select-none">
                               <td className="px-6 py-3.5 text-left whitespace-nowrap">
-                                <span className="flex items-center gap-2 text-xs text-indigo-300 font-bold uppercase tracking-wider">
+                                <span className="flex items-center gap-2 text-xs text-sky-300 font-bold uppercase tracking-wider">
                                   📅 Ngày {alertDate}
                                 </span>
                               </td>
@@ -132,14 +132,14 @@ export function AlertsHistoryTab({ showToast }) {
                                 al.level === 'warning' ? 'bg-amber-500/15 text-amber-400' :
                                 'bg-slate-800 text-slate-400'
                               }`}>
-                                {al.level === 'emergency' ? '🔥 Emergency' : '⚠️ Warning'}
+                                {al.level === 'emergency' ? 'Emergency' : 'Warning'}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {al.image_url ? (
                                 <img
                                   src={al.image_url}
-                                  className="w-16 h-10 object-cover rounded-lg border border-slate-700/80 hover:border-indigo-500/50 hover:scale-105 transition-all cursor-zoom-in"
+                                  className="w-16 h-10 object-cover rounded-lg border border-slate-700/80 hover:border-sky-500/50 hover:scale-105 transition-all cursor-zoom-in"
                                   onClick={() => setSelectedImage(al.image_url)}
                                   alt="ảnh sự cố"
                                   title="Click để phóng to ảnh"
@@ -187,7 +187,7 @@ export function AlertsHistoryTab({ showToast }) {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="px-3.5 py-2 rounded-xl bg-[#181a24] hover:bg-indigo-600/20 text-slate-200 disabled:opacity-30 disabled:hover:bg-[#181a24] cursor-pointer transition font-bold"
+                      className="px-3.5 py-2 rounded-xl bg-[#181a24] hover:bg-sky-600/20 text-slate-200 disabled:opacity-30 disabled:hover:bg-[#181a24] cursor-pointer transition font-bold"
                     >
                       Trước
                     </button>
@@ -197,7 +197,7 @@ export function AlertsHistoryTab({ showToast }) {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages || totalPages === 0}
-                      className="px-3.5 py-2 rounded-xl bg-[#181a24] hover:bg-indigo-600/20 text-slate-200 disabled:opacity-30 disabled:hover:bg-[#181a24] cursor-pointer transition font-bold"
+                      className="px-3.5 py-2 rounded-xl bg-[#181a24] hover:bg-sky-600/20 text-slate-200 disabled:opacity-30 disabled:hover:bg-[#181a24] cursor-pointer transition font-bold"
                     >
                       Tiếp
                     </button>

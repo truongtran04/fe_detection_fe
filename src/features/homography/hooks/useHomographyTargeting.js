@@ -27,6 +27,7 @@ import { fetchDemoImageBlob } from '../utils/demoImage.js';
 import { drawCctvOverlay } from '../canvas/drawCctvOverlay.js';
 import { drawCeilingView } from '../canvas/drawCeilingView.js';
 import { useThreeSimulator } from './useThreeSimulator.js';
+import { uploadSampleVideo } from '../../live/utils/videoUpload.js';
 
 export function useHomographyTargeting({ conf, iou, showToast }) {
   const [roomW, setRoomW] = useState(6.0);
@@ -40,6 +41,21 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   const [imageSize, setImageSize] = useState({ w: 640, h: 480 });
   const [imageSrc, setImageSrc] = useState('');
   const [fileBlob, setFileBlob] = useState(null);
+
+  // Video Streaming States for Homography Calibration background
+  const [streamSource, setStreamSource] = useState('videos/file.mp4');
+  const [customUrl, setCustomUrl] = useState('');
+  const [activeStreamType, setActiveStreamType] = useState('none'); // 'none' | 'mjpeg' | 'websocket'
+  const [streamTimestamp, setStreamTimestamp] = useState(null);
+  const [wsImage, setWsImage] = useState(null);
+
+  const videoRef = useRef(null);
+  const wsCapCanvasRef = useRef(null);
+  const wsRef = useRef(null);
+
+  // Upload progress states for custom calibration videos
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [corners, setCorners] = useState([
     { x: 80, y: 80 },
@@ -85,6 +101,9 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   const [targetingMode, setTargetingMode] = useState(() => {
     return localStorage.getItem('targeting_mode') || 'client';
   });
+  const [autoPumpEnabled, setAutoPumpEnabled] = useState(() => {
+    return localStorage.getItem('auto_pump_enabled') !== 'false';
+  });
 
   useEffect(() => {
     localStorage.setItem('esp32_ip', esp32Ip);
@@ -93,6 +112,10 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   useEffect(() => {
     localStorage.setItem('targeting_mode', targetingMode);
   }, [targetingMode]);
+
+  useEffect(() => {
+    localStorage.setItem('auto_pump_enabled', autoPumpEnabled);
+  }, [autoPumpEnabled]);
 
   const [cctvDragIndex, setCctvDragIndex] = useState(DRAG_NONE);
   const [ceilingDragIndex, setCeilingDragIndex] = useState(DRAG_NONE);
@@ -120,28 +143,175 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   };
 
   useEffect(() => {
-    const prevW = prevRoomWRef.current;
-    const prevL = prevRoomLRef.current;
-    if (prevW !== roomW || prevL !== roomL) {
-      const scaleW = roomW / (prevW || 1);
-      const scaleL = roomL / (prevL || 1);
-      setCeilingCctv(prev => ({ x: prev.x * scaleL, y: prev.y * scaleW }));
-      setCeilingNozzle(prev => ({ x: prev.x * scaleL, y: prev.y * scaleW }));
-      setSimulatedFire(prev => ({ x: prev.x * scaleL, y: prev.y * scaleW }));
-      prevRoomWRef.current = roomW;
-      prevRoomLRef.current = roomL;
+    const prevW = parseFloat(prevRoomWRef.current) || 6.0;
+    const prevL = parseFloat(prevRoomLRef.current) || 6.0;
+    const currW = parseFloat(roomW);
+    const currL = parseFloat(roomL);
+    if (!isNaN(currW) && currW > 0 && !isNaN(currL) && currL > 0) {
+      if (prevW !== currW || prevL !== currL) {
+        const scaleW = currW / prevW;
+        const scaleL = currL / prevL;
+        setCeilingCctv(prev => ({ x: prev.x * scaleL, y: prev.y * scaleW }));
+        setCeilingNozzle(prev => ({ x: prev.x * scaleL, y: prev.y * scaleW }));
+        setSimulatedFire(prev => ({ x: prev.x * scaleL, y: prev.y * scaleW }));
+        prevRoomWRef.current = currW;
+        prevRoomLRef.current = currL;
+      }
     }
   }, [roomW, roomL]);
 
   useEffect(() => {
     if (!imageLoaded || activeCornerCount < 4) return;
-    const { HInv } = buildRoomHomography(corners, roomW, roomL);
+    const wVal = parseFloat(roomW);
+    const lVal = parseFloat(roomL);
+    if (isNaN(wVal) || wVal <= 0 || isNaN(lVal) || lVal <= 0) return;
+    const { HInv } = buildRoomHomography(corners, wVal, lVal);
     setJsHInv(HInv);
     if (HInv) {
       setCctvPixel(projectRealToPixel(ceilingCctv.x, ceilingCctv.y, HInv));
       setNozzlePixel(projectRealToPixel(ceilingNozzle.x, ceilingNozzle.y, HInv));
     }
   }, [imageLoaded, corners, activeCornerCount, ceilingCctv, ceilingNozzle, roomW, roomL]);
+
+  const handleStopStream = (sessionToStop = null) => {
+    if (wsRef.current) wsRef.current.close();
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+    
+    const finalSession = (sessionToStop && (typeof sessionToStop === 'string' || typeof sessionToStop === 'number'))
+      ? sessionToStop
+      : null;
+    
+    if (finalSession || activeStreamType !== 'none') {
+      const url = finalSession ? `/api/stop-stream?session_id=${finalSession}` : '/api/stop-stream';
+      fetch(url, { method: 'POST' }).catch(() => {});
+    }
+
+    setActiveStreamType('none');
+    setWsImage(null);
+    setImageLoaded(false);
+  };
+
+  const handleStartWebSocket = async () => {
+    handleStopStream(streamTimestamp);
+    setActiveStreamType('websocket');
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: 1.7777777778
+        }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+
+      // Giả lập kích thước ảnh khi camera load
+      setImageSize({ w: 640, h: 360 });
+      setCorners(getInitialCorners(640, 360));
+      setImageLoaded(true);
+
+      const loc = window.location;
+      const wsProtocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${loc.host}/api/ws/predict?conf=${conf}&iou=${iou}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      const sendNextFrame = () => {
+        const video = videoRef.current;
+        const canvas = wsCapCanvasRef.current;
+        if (!video || !canvas || ws.readyState !== WebSocket.OPEN) return;
+        
+        canvas.width = 640;
+        canvas.height = 360;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 640, 360);
+        canvas.toBlob((blob) => {
+          if (blob && ws.readyState === WebSocket.OPEN) {
+            blob.arrayBuffer().then(buf => ws.send(buf));
+          }
+        }, 'image/jpeg', 0.65);
+      };
+
+      ws.onopen = () => {
+        sendNextFrame();
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.error) return;
+          setWsImage(data.image);
+          setImageSrc(data.image); // Gán ảnh đã được xử lý làm nền Homography
+        } catch {
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          requestAnimationFrame(sendNextFrame);
+        }
+      };
+
+      showToast('Đã mở webcam laptop làm nền hiệu chuẩn.', 'success');
+    } catch (e) {
+      showToast('Lỗi camera: ' + e.message, 'error');
+      setActiveStreamType('none');
+    }
+  };
+
+  const handleStartMJPEG = () => {
+    const newTimestamp = Date.now();
+    handleStopStream(streamTimestamp);
+    setStreamTimestamp(newTimestamp);
+    setActiveStreamType('mjpeg');
+    
+    // Giả lập kích thước 16:9
+    setImageSize({ w: 640, h: 360 });
+    setCorners(getInitialCorners(640, 360));
+    setImageLoaded(true);
+
+    const source = streamSource === 'custom' ? customUrl : streamSource;
+    const streamUrl = `/api/stream?source=${encodeURIComponent(source)}&conf=${conf}&iou=${iou}&t=${newTimestamp}`;
+    setImageSrc(streamUrl);
+
+    showToast('Bắt đầu truyền phát luồng video làm nền hiệu chuẩn...', 'success');
+  };
+
+  const getActiveStreamUrl = () => {
+    const source = streamSource === 'custom' ? customUrl : streamSource;
+    return `/api/stream?source=${encodeURIComponent(source)}&conf=${conf}&iou=${iou}${streamTimestamp ? `&t=${streamTimestamp}` : ''}`;
+  };
+
+  useEffect(() => {
+    return () => {
+      // Dọn dẹp luồng camera khi tắt Tab Homography
+      if (wsRef.current) wsRef.current.close();
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
+
+  const handleVideoUpload = (file) => {
+    setUploading(true);
+    setUploadProgress(0);
+    uploadSampleVideo(file, {
+      onProgress: (p) => setUploadProgress(p),
+      onSuccess: () => {
+        setUploading(false);
+        showToast('Tải video mới thành công! Đang kết nối...', 'success');
+        handleStartMJPEG();
+      },
+      onError: () => {
+        setUploading(false);
+        showToast('Lỗi khi tải video lên.', 'error');
+      }
+    });
+  };
 
   useEffect(() => {
     setCamZ(roomH);
@@ -162,17 +332,25 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
 
   const handleImageLoaded = (e) => {
     const img = e.target;
+    const prevLoaded = imageLoaded;
     setImageLoaded(true);
-    setImageSize({ w: img.naturalWidth, h: img.naturalHeight });
-    setCorners(getInitialCorners(img.naturalWidth, img.naturalHeight));
-    setCctvZoom(1.0);
-    setCctvPan({ x: 0, y: 0 });
-    setActiveCornerCount(4);
-    setCctvInteractionMode('points');
-    const defaults = getScaledCeilingDefaults(roomW, roomL);
-    setCeilingCctv(defaults.ceilingCctv);
-    setCeilingNozzle(defaults.ceilingNozzle);
-    setSimulatedFire(defaults.simulatedFire);
+
+    if (imageSize.w !== img.naturalWidth || imageSize.h !== img.naturalHeight) {
+      setImageSize({ w: img.naturalWidth, h: img.naturalHeight });
+    }
+
+    // Do NOT reset corners and calibration parameters if we are in streaming video mode
+    if (!prevLoaded && activeStreamType === 'none') {
+      setCorners(getInitialCorners(img.naturalWidth, img.naturalHeight));
+      setCctvZoom(1.0);
+      setCctvPan({ x: 0, y: 0 });
+      setActiveCornerCount(4);
+      setCctvInteractionMode('points');
+      const defaults = getScaledCeilingDefaults(roomW, roomL);
+      setCeilingCctv(defaults.ceilingCctv);
+      setCeilingNozzle(defaults.ceilingNozzle);
+      setSimulatedFire(defaults.simulatedFire);
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -239,14 +417,15 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
       ceilingNozzle,
       simulatedFire,
       isDemoImage,
-      roomToCeilingCanvas
+      roomToCeilingCanvas,
+      targets
     });
 
     setCctvReal([ceilingCctv.x, ceilingCctv.y]);
     setNozzleReal([ceilingNozzle.x, ceilingNozzle.y]);
     setNearestCornerInfo(result.nearest.name);
     setCameraOffset(result.cameraOffset);
-  }, [roomW, roomL, ceilingCctv, ceilingNozzle, simulatedFire, isDemoImage, ceilingZoom, ceilingPan]);
+  }, [roomW, roomL, ceilingCctv, ceilingNozzle, simulatedFire, isDemoImage, ceilingZoom, ceilingPan, targets]);
 
   useEffect(() => {
     window.addEventListener('resize', resizeCanvasToImage);
@@ -467,6 +646,7 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
       formData.append('mock_detect', isDemoImage ? 'true' : 'false');
       formData.append('targeting_mode', targetingMode);
       formData.append('esp32_ip', esp32Ip);
+      formData.append('auto_pump', autoPumpEnabled ? 'true' : 'false');
       if (isDemoImage && jsHInv) {
         const simPixel = projectRealToPixel(simulatedFire.x, simulatedFire.y, jsHInv);
         formData.append('simulated_fire_json', JSON.stringify([simPixel.x, simPixel.y]));
@@ -500,33 +680,65 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
             // Tự động truyền lệnh điều khiển motor tới ESP32 qua API (Client-side)
             const cmd = target.serial;
             if (cmd) {
-              const regex = /([UDLR])(\d+(?:\.\d+)?)/g;
-              let match;
-              const subCommands = [];
-              while ((match = regex.exec(cmd)) !== null) {
-                subCommands.push(match[1] + Math.round(parseFloat(match[2])));
-              }
+              setSerialStatus(`Đang gửi lệnh tới ESP32...`);
+              setSerialStatusClass('bg-[#181a24] text-sky-400 border border-sky-900/50 animate-pulse');
 
-              if (subCommands.length > 0) {
-                setSerialStatus(`Đang gửi lệnh tới ESP32...`);
-                setSerialStatusClass('bg-[#181a24] text-indigo-400 border border-indigo-900/50 animate-pulse');
+              try {
+                // 1. Tắt máy bơm nước trước khi xoay servo (tránh phun nước lung tung khi di chuyển)
+                await fetch('/api/esp32/control', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    esp32_ip: esp32Ip,
+                    action: 'pump',
+                    status: 'off'
+                  })
+                });
+                setPumpOn(false);
 
-                try {
-                  const cleanIp = esp32Ip.replace(/\/$/, '');
-                  for (const sub of subCommands) {
-                    const response = await fetch(`${cleanIp}/run?cmd=${sub}`);
-                    if (!response.ok) {
-                      throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                  }
-                  setSerialStatus(`Đã truyền: ${cmd}`);
-                  setSerialStatusClass('bg-emerald-950/20 text-emerald-400 border border-emerald-900/20');
-                  showToast('Đã đồng bộ lệnh điều khiển tới ESP32.', 'success');
-                } catch (e) {
-                  setSerialStatus(`Lỗi gửi: ${e.message}`);
-                  setSerialStatusClass('bg-red-950/20 text-red-400 border border-red-900/20');
-                  showToast('Lỗi truyền thông tới ESP32.', 'error');
+                // 2. Cập nhật trạng thái hiển thị
+                setSerialStatus(`Đang xoay motor...`);
+                setSerialStatusClass('bg-[#181a24] text-sky-400 border border-sky-900/50 animate-pulse');
+
+                // 3. Gửi lệnh quay servo qua backend proxy (chờ cho tới khi xoay xong toàn bộ)
+                const response = await fetch('/api/serial/send', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    command: cmd,
+                    esp32_ip: esp32Ip
+                  })
+                });
+                if (!response.ok) {
+                  const errData = await response.json();
+                  throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
                 }
+                
+                // 4. Bật máy bơm nước dập lửa sau khi đã quay xong mục tiêu (nếu được bật tự động)
+                if (autoPumpEnabled) {
+                  const pumpRes = await fetch('/api/esp32/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      esp32_ip: esp32Ip,
+                      action: 'pump',
+                      status: 'on'
+                    })
+                  });
+                  if (pumpRes.ok) {
+                    setPumpOn(true);
+                    setSerialStatus(`Đã truyền & Bật bơm: ${cmd}`);
+                  }
+                } else {
+                  setSerialStatus(`Đã truyền: ${cmd}`);
+                }
+                
+                setSerialStatusClass('bg-emerald-950/20 text-emerald-400 border border-emerald-900/20');
+                showToast('Đã đồng bộ lệnh điều khiển tới ESP32.', 'success');
+              } catch (e) {
+                setSerialStatus(`Lỗi gửi: ${e.message}`);
+                setSerialStatusClass('bg-red-950/20 text-red-400 border border-red-900/20');
+                showToast(`Lỗi truyền thông tới ESP32: ${e.message}`, 'error');
               }
             }
           }
@@ -554,12 +766,12 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
   const handleSendSerialMock = async () => {
     if (!serialCommand) return;
     setSerialStatus('Đang gửi lệnh serial...');
-    setSerialStatusClass('bg-[#181a24] text-indigo-400 border border-indigo-900/50 animate-pulse');
+    setSerialStatusClass('bg-[#181a24] text-sky-400 border border-sky-900/50 animate-pulse');
     try {
       const res = await fetch('/api/serial/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: serialCommand })
+        body: JSON.stringify({ command: serialCommand, esp32_ip: esp32Ip })
       });
       const data = await res.json();
       if (res.ok && data.status === 'success') {
@@ -580,9 +792,13 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
 
   const handleResetServo = async () => {
     try {
-      const res = await fetch('/api/servo/reset', { method: 'POST' });
+      const url = esp32Ip
+        ? `/api/servo/reset?esp32_ip=${encodeURIComponent(esp32Ip)}`
+        : '/api/servo/reset';
+      const res = await fetch(url, { method: 'POST' });
       const data = await res.json();
       if (res.ok && data.status === 'success') {
+        setPumpOn(false);
         setSerialCommand(data.serial);
         setRawOutput(
           `[SERVO RESET] Servo đã quay về gốc (0°, 0°)\n` +
@@ -607,13 +823,23 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     setPumpOn(nextStatus);
     setPumpLoading(true);
     try {
-      const cleanIp = esp32Ip.replace(/\/$/, '');
-      const response = await fetch(`${cleanIp}/pump?state=${nextStatus ? 'on' : 'off'}`, { method: 'POST' });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch('/api/esp32/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          esp32_ip: esp32Ip,
+          action: 'pump',
+          status: nextStatus ? 'on' : 'off'
+        })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || `HTTP error! status: ${response.status}`);
+      }
       showToast(`Mô tơ đã được ${nextStatus ? 'bật' : 'tắt'}!`, 'success');
     } catch (err) {
       setPumpOn(!nextStatus);
-      showToast(`Lỗi kết nối tới ESP32 tại ${esp32Ip}.`, 'error');
+      showToast(`Lỗi kết nối tới ESP32: ${err.message}`, 'error');
     } finally {
       setPumpLoading(false);
     }
@@ -686,8 +912,17 @@ export function useHomographyTargeting({ conf, iou, showToast }) {
     pumpOn, setPumpOn,
     pumpLoading, handleTogglePump,
     targetingMode, setTargetingMode,
+    autoPumpEnabled, setAutoPumpEnabled,
     activeCornerCount, setActiveCornerCount,
     cctvInteractionMode, setCctvInteractionMode,
-    handleStartSequentialPlacement
+    handleStartSequentialPlacement,
+    
+    // Video streaming states/handlers for calibration background
+    streamSource, setStreamSource,
+    customUrl, setCustomUrl,
+    activeStreamType,
+    handleStartWebSocket, handleStartMJPEG, handleStopStream,
+    videoRef, wsCapCanvasRef,
+    uploading, uploadProgress, handleVideoUpload
   };
 }

@@ -15,8 +15,8 @@ export function StreamSidebar({
     <div className="lg:col-span-1 space-y-6">
       <div className="glass-panel rounded-3xl p-6 space-y-5">
         <div className="flex items-center gap-2.5 pb-2 text-slate-200">
-          <div className="p-2 bg-indigo-500/10 rounded-xl">
-            <Camera className="w-5 h-5 text-indigo-400 shrink-0" />
+          <div className="p-2 bg-sky-500/10 rounded-xl">
+            <Camera className="w-5 h-5 text-sky-400 shrink-0" />
           </div>
           <h2 className="font-bold text-sm">Nguồn Camera & AI</h2>
         </div>
@@ -29,9 +29,9 @@ export function StreamSidebar({
             disabled={activeStreamType !== STREAM_TYPES.NONE}
             className="w-full bg-[#181a24] rounded-2xl px-3.5 py-3 text-xs text-slate-200 focus:outline-none cursor-pointer"
           >
-            <option value="browser-cam">📷 Camera của laptop</option>
-            <option value="videos/file.mp4">🎞️ Video mẫu (file.mp4)</option>
-            <option value="custom">🔗 Cổng RTSP / URL Tùy chọn</option>
+            <option value="browser-cam">Camera của laptop</option>
+            <option value="videos/file.mp4">Video mẫu (file.mp4)</option>
+            <option value="custom">Cổng RTSP / URL Tùy chọn</option>
           </select>
         </div>
 
@@ -57,7 +57,7 @@ export function StreamSidebar({
               onDragLeave={handleDrag}
               onDrop={handleDrop}
               className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all duration-300 ${
-                isDragActive ? 'border-indigo-400 bg-indigo-500/5' : 'border-[#27273a] hover:border-indigo-500/30'
+                isDragActive ? 'border-sky-400 bg-sky-500/5' : 'border-[#27273a] hover:border-sky-500/30'
               }`}
               onClick={() => document.getElementById('video-uploader').click()}
             >
@@ -79,7 +79,7 @@ export function StreamSidebar({
                   <span>{uploadProgress}%</span>
                 </div>
                 <div className="w-full h-1 bg-[#181a24] rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500 transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                  <div className="h-full bg-sky-500 transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
                 </div>
               </div>
             )}
@@ -122,11 +122,11 @@ export function StreamSidebar({
             <span className="text-sm font-bold text-slate-200 mt-0.5 block">{stats.total_detections}</span>
           </div>
           <div className="bg-[#181a24] p-3 rounded-2xl shadow-inner">
-            <span className="text-[9px] text-red-400 block uppercase tracking-wider">🔥 Lửa Hiện Tại</span>
+            <span className="text-[9px] text-red-400 block uppercase tracking-wider">Lửa Hiện Tại</span>
             <span className={`text-sm font-bold mt-0.5 block ${(stats.fire_now || 0) > 0 ? 'text-red-500' : 'text-slate-400'}`}>{stats.fire_now || 0}</span>
           </div>
           <div className="bg-[#181a24] p-3 rounded-2xl shadow-inner">
-            <span className="text-[9px] text-amber-400 block uppercase tracking-wider">💨 Khói Hiện Tại</span>
+            <span className="text-[9px] text-amber-400 block uppercase tracking-wider">Khói Hiện Tại</span>
             <span className={`text-sm font-bold mt-0.5 block ${(stats.smoke_now || 0) > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{stats.smoke_now || 0}</span>
           </div>
         </div>

@@ -25,17 +25,7 @@ export function AppLayout({
   handleSelectModel
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') !== 'light';
-  });
-
-  const toggleTheme = () => {
-    setIsDarkMode(prev => {
-      const next = !prev;
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-      return next;
-    });
-  };
+  const isDarkMode = true; // Fixed to Dark Mode
 
   const tabProps = { conf, iou, showToast };
 
@@ -57,16 +47,15 @@ export function AppLayout({
         handleSelectModel={handleSelectModel}
       />
 
-      <main className="flex-1 flex flex-col bg-[#0b0c10] overflow-hidden relative">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         <Header
           activeTab={activeTab}
           sidebarOpen={sidebarOpen}
           toggleSidebar={() => setSidebarOpen(prev => !prev)}
           isDarkMode={isDarkMode}
-          toggleTheme={toggleTheme}
         />
 
-        <div className="flex-1 overflow-y-auto p-6 bg-[#0b0c10]/40 relative">
+        <div className="flex-1 overflow-y-auto p-6 relative">
           {activeTab === 'live' && <LiveMonitorTab {...tabProps} />}
           {activeTab === 'predict' && <OfflineAnalysisTab {...tabProps} />}
           {activeTab === 'targeting' && <HomographyTargetingTab {...tabProps} />}

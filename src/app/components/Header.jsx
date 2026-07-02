@@ -21,17 +21,6 @@ export function Header({ activeTab, sidebarOpen, toggleSidebar, isDarkMode, togg
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          onClick={toggleTheme}
-          className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition cursor-pointer flex items-center justify-center border border-slate-800/20"
-          title={isDarkMode ? "Chuyển sang Chế độ Sáng" : "Chuyển sang Chế độ Tối"}
-        >
-          {isDarkMode ? (
-            <Sun className="w-5 h-5 text-amber-400" />
-          ) : (
-            <Moon className="w-5 h-5 text-indigo-400" />
-          )}
-        </button>
       </div>
     </header>
   );

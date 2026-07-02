@@ -14,7 +14,7 @@ export function VideoPlayer({
         <div className="flex justify-between items-center pb-3 mb-4">
           <div>
             <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-              <Film className="w-5 h-5 text-indigo-400" /> Luồng Live Camera Giám Sát
+              <Film className="w-5 h-5 text-sky-400" /> Luồng Live Camera Giám Sát
             </h3>
             <span className="text-[10px] text-slate-500 block mt-0.5">Nhận diện và khoanh vùng khói lửa theo thời gian thực từ camera kết nối.</span>
           </div>
@@ -57,7 +57,7 @@ export function VideoPlayer({
                 <img src={wsImage} className="w-full h-full object-contain" alt="WebSocket Active Stream" />
               ) : (
                 <div className="text-center p-6 text-slate-500 flex flex-col items-center gap-2 animate-fade-in">
-                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                   <p className="text-xs font-semibold">Đang liên kết thiết bị webcam...</p>
                 </div>
               )}

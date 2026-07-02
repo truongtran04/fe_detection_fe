@@ -4,7 +4,7 @@ export function TheoryPanel() {
   return (
     <div className="glass-panel rounded-lg p-6 text-left">
       <h4 className="font-extrabold text-sm text-slate-200 pb-2 mb-3 flex items-center gap-2">
-        <HelpCircle className="w-5 h-5 text-indigo-400" /> Nguyên Lý Tính Toán & Điều Khiển Servo ESP32
+        <HelpCircle className="w-5 h-5 text-sky-400" /> Nguyên Lý Tính Toán & Điều Khiển Servo ESP32
       </h4>
       <div className="grid grid-cols-1 md:grid-cols-10 gap-6 text-xs text-slate-400 leading-relaxed font-mono">
         <div className="md:col-span-4 space-y-2">
@@ -19,12 +19,12 @@ export function TheoryPanel() {
         </div>
 
         <div className="md:col-span-6 space-y-3 bg-[#0b0c10] p-5 rounded-lg border border-slate-900/50 shadow-inner">
-          <p className="text-indigo-400 font-bold text-xs uppercase tracking-wider">Chế Độ Điều Khiển ESP32 — Góc Tương Đối (Delta)</p>
+          <p className="text-sky-400 font-bold text-xs uppercase tracking-wider">Chế Độ Điều Khiển ESP32 — Góc Tương Đối (Delta)</p>
           <div className="space-y-2.5 text-[11px]">
             <div>
               <span className="text-slate-200 font-bold">Nguyên lý hoạt động:</span>
               <p className="text-slate-500 pl-4 mt-0.5">
-                Backend theo dõi <strong className="text-indigo-400">vị trí servo hiện tại</strong> và tính <strong className="text-emerald-400">delta (chênh lệch)</strong> giữa góc mục tiêu và góc hiện tại. 
+                Backend theo dõi <strong className="text-sky-400">vị trí servo hiện tại</strong> và tính <strong className="text-emerald-400">delta (chênh lệch)</strong> giữa góc mục tiêu và góc hiện tại. 
                 ESP32 nhận lệnh quay tương đối thông qua API WiFi.
               </p>
             </div>

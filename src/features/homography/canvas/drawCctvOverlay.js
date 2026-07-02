@@ -52,7 +52,7 @@ export const drawCctvOverlay = (ctx, {
   const cCctv = toCanvas(cctvPixel);
 
   if (activeCornerCount > 0) {
-    ctx.strokeStyle = '#6366f1';
+    ctx.strokeStyle = '#0ea5e9';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(cCorners[0].x, cCorners[0].y);

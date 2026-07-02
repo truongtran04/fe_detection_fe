@@ -20,13 +20,13 @@ export const createAlarmController = (isMutedRef) => {
     let duration = 0.38;
 
     if (level === 'emergency') {
-      intervalTime = 250;  // Dồn dập cảnh báo di tản
-      startFreq = 1200;    // Cao độ chói tai kích thích hành động khẩn cấp
+      intervalTime = 250;  
+      startFreq = 1200;
       endFreq = 600;
       duration = 0.2;
     } else if (level === 'early' || level === 'warning') {
-      intervalTime = 1200; // Tần suất chậm để cảnh giác nhẹ
-      startFreq = 500;     // Cao độ thấp, êm dịu hơn
+      intervalTime = 1200; 
+      startFreq = 500;    
       endFreq = 300;
       type = 'sine';       
       duration = 0.5;
@@ -52,7 +52,7 @@ export const createAlarmController = (isMutedRef) => {
         osc.type = type;
         osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + duration - 0.03);
-        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration - 0.01);
         osc.start();
         osc.stop(audioCtx.currentTime + duration);

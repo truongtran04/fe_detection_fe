@@ -10,7 +10,7 @@ export function VideoAnalysisPanel({
       <div className="space-y-4 md:col-span-3">
         <h3 className="text-slate-200 font-bold text-sm">Tải Video Lên</h3>
 
-        <div className="border-2 border-dashed border-[#27273a] hover:border-indigo-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center bg-[#181a24] text-center min-h-[220px] relative">
+        <div className="border-2 border-dashed border-[#27273a] hover:border-sky-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center bg-[#181a24] text-center min-h-[220px] relative">
           <input
             type="file"
             accept="video/*"
@@ -18,7 +18,7 @@ export function VideoAnalysisPanel({
             disabled={videoStatus === 'pending' || videoStatus === 'processing'}
             className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
           />
-          <Upload className="w-8 h-8 text-indigo-400 mb-3" />
+          <Upload className="w-8 h-8 text-sky-400 mb-3" />
           <span className="text-xs font-semibold text-slate-300">Click hoặc kéo thả file video</span>
           <span className="text-[10px] text-slate-500 mt-1">Định dạng MP4, AVI, MOV tối đa 100MB</span>
         </div>
@@ -41,17 +41,17 @@ export function VideoAnalysisPanel({
               <div className="space-y-2 pt-2 text-left animate-fade-in">
                 <div className="flex justify-between text-xs font-semibold">
                   <span className="text-slate-400 flex items-center gap-1.5 text-[10px] tracking-wide">
-                    {(videoStatus === 'pending' || videoStatus === 'processing') && <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />}
+                    {(videoStatus === 'pending' || videoStatus === 'processing') && <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-400" />}
                     {videoStatus === 'completed' && <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
                     {videoStatus === 'failed' && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                     Trạng thái: <span className="text-slate-200 capitalize font-extrabold">{videoStatus === 'processing' ? 'Đang phân tích...' : videoStatus}</span>
                   </span>
-                  <span className="text-indigo-400 font-mono text-[11px]">{videoProgress.toFixed(1)}%</span>
+                  <span className="text-sky-400 font-mono text-[11px]">{videoProgress.toFixed(1)}%</span>
                 </div>
                 <div className="w-full bg-[#0b0c10] rounded-full h-1.5 overflow-hidden">
                   <div
                     className={`h-1.5 rounded-full transition-all duration-350 ${
-                      videoStatus === 'failed' ? 'bg-red-500' : videoStatus === 'completed' ? 'bg-emerald-500' : 'bg-indigo-500 animate-pulse'
+                      videoStatus === 'failed' ? 'bg-red-500' : videoStatus === 'completed' ? 'bg-emerald-500' : 'bg-sky-500 animate-pulse'
                     }`}
                     style={{ width: `${videoProgress}%` }}
                   ></div>
@@ -83,7 +83,7 @@ export function VideoAnalysisPanel({
             </div>
           ) : videoPreview && (videoStatus === 'pending' || videoStatus === 'processing') ? (
             <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
-              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
               <p className="text-xs">Đang chạy nhận dạng AI khói lửa...</p>
             </div>
           ) : (

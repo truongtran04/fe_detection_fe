@@ -236,12 +236,12 @@ export function useThreeSimulator(props) {
     refs.distanceLine = connLine;
 
     let tx = null, ty = null;
-    if (targets.length > 0) {
-      tx = targets[0].real[0];
-      ty = -targets[0].real[1];
-    } else if (isDemoImage) {
+    if (isDemoImage) {
       tx = simulatedFire.x;
       ty = -simulatedFire.y;
+    } else if (targets.length > 0) {
+      tx = targets[0].real[0];
+      ty = -targets[0].real[1];
     }
 
     if (tx !== null && ty !== null) {
@@ -368,7 +368,7 @@ export function useThreeSimulator(props) {
       { label: 'C4', x: -roomL / 2, z: roomW / 2 },
     ];
     refs.cornerLabels = cornerDefs.map(({ label, x, z }) => {
-      const s = createTextSprite(label, '#6366f1');
+      const s = createTextSprite(label, '#0ea5e9');
       s.scale.set(0.5, 0.5, 1);
       s.position.set(x, 0.05, z);
       scene.add(s);

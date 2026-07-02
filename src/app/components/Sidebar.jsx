@@ -3,7 +3,7 @@ import { FileImage, ShieldAlert, Target, Tv, Cpu, SlidersHorizontal, History } f
 export function Sidebar({ activeTab, setActiveTab, serverOnline, classes, conf, setConf, iou, setIou, sidebarOpen, models = [], activeModel = '', loadingModel = false, handleSelectModel }) {
   const tabClass = (tab) =>
     `w-full flex items-center transition-all duration-300 rounded-2xl text-[11px] font-bold uppercase tracking-wider cursor-pointer ${activeTab === tab
-      ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30'
+      ? 'bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-lg shadow-sky-600/30'
       : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
     } ${sidebarOpen ? 'px-4 py-3.5 gap-3.5 justify-start' : 'p-3.5 justify-center'}`;
 
@@ -49,14 +49,14 @@ export function Sidebar({ activeTab, setActiveTab, serverOnline, classes, conf, 
           {models.length > 0 && (
             <div className="mx-4 my-1 px-4 py-3 bg-[#181a24] rounded-2xl flex flex-col gap-2.5 shadow-inner shrink-0">
               <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-                <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                <Cpu className="w-3.5 h-3.5 text-sky-400" />
                 <span>Mô hình AI nhận dạng:</span>
               </div>
               <select
                 value={activeModel}
                 onChange={(e) => handleSelectModel(e.target.value)}
                 disabled={loadingModel}
-                className="w-full bg-[#121318] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none cursor-pointer border border-slate-800/80 hover:border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#121318] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none cursor-pointer border border-slate-800/80 hover:border-sky-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {models.map((model) => (
                   <option key={model.path} value={model.path}>
@@ -70,30 +70,30 @@ export function Sidebar({ activeTab, setActiveTab, serverOnline, classes, conf, 
           {/* Ngưỡng nhận diện */}
           <div className="mx-4 my-1 px-4 py-3 bg-[#181a24] rounded-2xl flex flex-col gap-3 shadow-inner shrink-0">
             <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-sky-400" />
               <span>Ngưỡng Nhận Diện:</span>
             </div>
             <div className="space-y-2.5 text-xs font-semibold">
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>Conf (Độ tin cậy):</span>
-                  <span className="text-indigo-400 font-mono font-bold">{conf}</span>
+                  <span>Độ tin cậy:</span>
+                  <span className="text-sky-400 font-mono font-bold">{conf}</span>
                 </div>
                 <input
                   type="range" min="0.1" max="0.9" step="0.05" value={conf}
                   onChange={(e) => setConf(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                 />
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>IOU (Trùng lặp):</span>
-                  <span className="text-indigo-400 font-mono font-bold">{iou}</span>
+                  <span>Trùng lặp:</span>
+                  <span className="text-sky-400 font-mono font-bold">{iou}</span>
                 </div>
                 <input
                   type="range" min="0.1" max="0.9" step="0.05" value={iou}
                   onChange={(e) => setIou(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                 />
               </div>
             </div>

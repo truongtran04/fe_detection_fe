@@ -21,10 +21,6 @@ export function useLiveMonitor({ conf, iou, showToast }) {
   const [loadingAlerts] = useState(false);
   const [wsImage, setWsImage] = useState(null);
 
-  const consecutiveDangerFramesRef = useRef(0);
-  const lastAlertLoggedTimeRef = useRef(0);
-  const safeStartTimeRef = useRef(0);
-  const safetyAlertLoggedRef = useRef(true);
   const videoRef = useRef(null);
   const wsCapCanvasRef = useRef(null);
   const wsRef = useRef(null);
@@ -109,6 +105,28 @@ export function useLiveMonitor({ conf, iou, showToast }) {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      const sendNextFrame = () => {
+        const video = videoRef.current;
+        const canvas = wsCapCanvasRef.current;
+        if (!video || !canvas || ws.readyState !== WebSocket.OPEN) return;
+        
+        canvas.width = 640;
+        canvas.height = 360;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 640, 360);
+        canvas.toBlob((blob) => {
+          if (blob && ws.readyState === WebSocket.OPEN) {
+            blob.arrayBuffer().then(buf => ws.send(buf));
+          }
+        }, 'image/jpeg', 0.65);
+      };
+
+      ws.onopen = () => {
+        // Gửi frame đầu tiên khi mở kết nối
+        sendNextFrame();
+      };
+
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -124,31 +142,19 @@ export function useLiveMonitor({ conf, iou, showToast }) {
             smoke_now: smokeC,
             fire_accumulated: (prev.fire_accumulated || 0) + (fireC > 0 ? 1 : 0),
             smoke_accumulated: (prev.smoke_accumulated || 0) + (smokeC > 0 ? 1 : 0),
-            fire_level: data.fire_level || "none",
+            fire_level: data.alert_level || "none",
+            is_alerting: data.is_alerting || false,
             is_active: true
           }));
         } catch {
           // ignore malformed frames
         }
+        
+        // Sau khi nhận kết quả của frame cũ, lập tức gửi tiếp frame mới
+        if (ws.readyState === WebSocket.OPEN) {
+          requestAnimationFrame(sendNextFrame);
+        }
       };
-
-      captureIntervalRef.current = setInterval(() => {
-        const video = videoRef.current;
-        const canvas = wsCapCanvasRef.current;
-        if (!video || !canvas || ws.readyState !== WebSocket.OPEN) return;
-        
-        // Thiết lập kích thước canvas là 16:9 để không bị kéo giãn
-        canvas.width = 640;
-        canvas.height = 360;
-        
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, 640, 360);
-        canvas.toBlob((blob) => {
-          if (blob && ws.readyState === WebSocket.OPEN) {
-            blob.arrayBuffer().then(buf => ws.send(buf));
-          }
-        }, 'image/jpeg', 0.65);
-      }, 45);
 
       showToast('Đã mở webcam laptop thành công.', 'success');
     } catch (e) {
@@ -166,77 +172,46 @@ export function useLiveMonitor({ conf, iou, showToast }) {
     showToast('Bắt đầu truyền phát luồng video AI...', 'success');
   };
 
+  const lastLogTimeRef = useRef(0);
+
   useEffect(() => {
     if (activeStreamType === STREAM_TYPES.NONE) {
-      consecutiveDangerFramesRef.current = 0;
-      lastAlertLoggedTimeRef.current = 0;
-      safeStartTimeRef.current = 0;
-      safetyAlertLoggedRef.current = true;
       setIsAlertConfirmed(false);
       return;
     }
 
-    const hasDangerNow = stats.fire_now > 0 || stats.smoke_now > 0;
-    if (hasDangerNow) {
-      // Khi phát hiện nguy hiểm, reset trạng thái an toàn
-      safeStartTimeRef.current = 0;
-      safetyAlertLoggedRef.current = false;
+    setIsAlertConfirmed(!!stats.is_alerting);
 
-      consecutiveDangerFramesRef.current += 1;
-      const threshold = DANGER_FRAME_THRESHOLD[activeStreamType] ?? 2;
-      if (consecutiveDangerFramesRef.current >= threshold) {
-        setIsAlertConfirmed(true);
+    // Gửi log cảnh báo khi hệ thống báo động (is_alerting = True cho Lửa) HOẶC phát hiện khói (fire_level = 'warning')
+    const hasAlarm = !!stats.is_alerting;
+    const hasSmoke = stats.fire_level === 'warning';
+
+    if (hasAlarm || hasSmoke) {
+      const now = Date.now();
+      if (now - lastLogTimeRef.current >= 10000) {
+        lastLogTimeRef.current = now;
         
-        const now = Date.now();
-        // Cảnh báo ngay lập tức nếu là lần đầu tiên phát hiện nguy hiểm (lastAlertLoggedTimeRef.current === 0)
-        // hoặc cảnh báo định kỳ mỗi 10 giây (10000 ms)
-        if (lastAlertLoggedTimeRef.current === 0 || (now - lastAlertLoggedTimeRef.current >= 10000)) {
-          let alertLevel = 'warning';
-          let alertMsg = 'CẢNH BÁO: Phát hiện có khói bốc lên.';
-          
-          if (stats.fire_now > 0) {
-            const fLevel = stats.fire_level || 'early';
-            if (fLevel === 'emergency') {
-              alertLevel = 'emergency';
-              alertMsg = 'HỎA HOẠN KHẨN CẤP: Cháy lớn lan rộng hoặc bùng phát cực nhanh! Hãy sơ tán lập tức và gọi 114!';
-            } else if (fLevel === 'moderate') {
-              alertLevel = 'warning';
-              alertMsg = 'BÁO ĐỘNG ĐỎ: Phát hiện đám cháy vừa (Diện tích từ 3% đến 12%). Hãy khẩn trương dập tắt!';
-            } else {
-              alertLevel = 'warning';
-              alertMsg = 'CẢNH BÁO SỚM: Đám lửa nhỏ mới bùng phát (Diện tích < 3%). Vui lòng kiểm soát ngay!';
-            }
-          }
-          logAlert(alertLevel, alertMsg);
-          lastAlertLoggedTimeRef.current = now;
+        let level = 'warning';
+        let message = 'Hệ thống phát hiện khói bất thường tại khu vực giám sát!';
+        
+        if (hasAlarm) {
+          level = 'emergency';
+          message = 'BÁO ĐỘNG: Phát hiện có đám cháy bùng phát tại khu vực giám sát!';
+          showToast(message, 'error');
+        } else {
+          showToast(message, 'warning');
         }
-      }
-    } else {
-      // Khi an toàn trở lại
-      consecutiveDangerFramesRef.current = 0;
-      setIsAlertConfirmed(false);
-      lastAlertLoggedTimeRef.current = 0;
-
-      // Nếu bắt đầu chuyển sang trạng thái an toàn
-      if (safeStartTimeRef.current === 0) {
-        safeStartTimeRef.current = Date.now();
-      } else {
-        const now = Date.now();
-        // Nếu đã duy trì an toàn liên tục hơn 60 giây (60000 ms) và chưa gửi log an toàn
-        if (now - safeStartTimeRef.current >= 60000 && !safetyAlertLoggedRef.current) {
-          logAlert(
-            'normal',
-            'An toàn: Không còn phát hiện dấu hiệu cháy trong 1 phút qua. Hệ thống trở lại bình thường.'
-          );
-          safetyAlertLoggedRef.current = true;
-        }
+        
+        logAlert(level, message)
+          .then(() => refreshAlerts())
+          .catch(() => {});
       }
     }
-  }, [stats, activeStreamType]);
+  }, [stats.is_alerting, stats.fire_level, activeStreamType]);
 
   useEffect(() => {
     if (isAlertConfirmed && activeStreamType !== STREAM_TYPES.NONE && !isMuted) {
-      const fLevel = stats.fire_now > 0 ? (stats.fire_level || 'early') : 'warning';
+      const fLevel = stats.fire_now > 0 ? (stats.fire_level || 'emergency') : 'warning';
       alarmRef.current?.start(fLevel);
     } else {
       alarmRef.current?.stop();
@@ -244,20 +219,27 @@ export function useLiveMonitor({ conf, iou, showToast }) {
     return () => alarmRef.current?.stop();
   }, [isAlertConfirmed, activeStreamType, isMuted, stats.fire_now, stats.fire_level]);
 
-
-
   const refreshAlerts = async () => {
-    setAlerts(await fetchAlertsHistory());
+    try {
+      const history = await fetchAlertsHistory();
+      setAlerts(history);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
     refreshAlerts();
-    alertsIntervalRef.current = setInterval(refreshAlerts, 3000);
     return () => {
-      clearInterval(alertsIntervalRef.current);
       handleStopStream();
     };
   }, []);
+
+  useEffect(() => {
+    if (stats.is_alerting) {
+      refreshAlerts();
+    }
+  }, [stats.is_alerting]);
 
   const handleClearAlertLogs = async () => {
     if (!window.confirm('Xóa lịch sử cảnh báo?')) return;

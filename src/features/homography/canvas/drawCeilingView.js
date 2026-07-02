@@ -8,13 +8,14 @@ export const drawCeilingView = (ctx, w, h, {
   ceilingNozzle,
   simulatedFire,
   isDemoImage,
-  roomToCeilingCanvas
+  roomToCeilingCanvas,
+  targets = []
 }) => {
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = 'rgba(11,12,16,1)';
   ctx.fillRect(0, 0, w, h);
 
-  const spacing = Math.max(roomW, roomL) <= 4 ? 0.5 : 1.0;
+  const spacing = 1.0;
   const gridExtX = roomL;
   const gridExtY = roomW;
 
@@ -41,6 +42,21 @@ export const drawCeilingView = (ctx, w, h, {
   const axY0 = roomToCeilingCanvas(0, gridExtY, w, h);
   const axY1 = roomToCeilingCanvas(0, -gridExtY, w, h);
   ctx.beginPath(); ctx.moveTo(axY0.cx, axY0.cy); ctx.lineTo(axY1.cx, axY1.cy); ctx.stroke();
+
+  // Vẽ nhãn trục Ox, Oy rõ ràng
+  ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = 'rgba(99,102,241,0.85)';
+  
+  // Trục Ox ở cuối bên phải
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Ox', axX1.cx + 8, axX1.cy);
+
+  // Trục Oy ở trên cùng màn hình
+  const topY = axY0.cy < axY1.cy ? axY0 : axY1;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Oy', topY.cx, topY.cy - 8);
 
   ctx.font = '8px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = 'rgba(100,116,139,0.7)';
@@ -126,8 +142,39 @@ export const drawCeilingView = (ctx, w, h, {
   drawPoint(ctx, ptNozzle.cx, ptNozzle.cy, '#d946ef', 9, 'Vòi Phun', ceilingNozzle);
   drawPoint(ctx, ptCctv.cx, ptCctv.cy, '#eab308', 9, 'CCTV', ceilingCctv);
 
+  let activeFirePt = null;
   if (isDemoImage) {
+    activeFirePt = ptFire;
     drawPoint(ctx, ptFire.cx, ptFire.cy, '#ef4444', 11, '🔥 Lửa Mock', simulatedFire);
+  } else if (targets && targets.length > 0) {
+    targets.forEach((t) => {
+      if (t.real && t.real.length >= 2) {
+        const ptRealFire = roomToCeilingCanvas(t.real[0], t.real[1], w, h);
+        if (!activeFirePt) {
+          activeFirePt = ptRealFire;
+        }
+        drawPoint(
+          ctx,
+          ptRealFire.cx,
+          ptRealFire.cy,
+          '#ef4444',
+          11,
+          `🔥 ${t.class_name === 'fire' ? 'Lửa' : t.class_name === 'smoke' ? 'Khói' : t.class_name}`,
+          { x: t.real[0], y: t.real[1] }
+        );
+      }
+    });
+  }
+
+  if (activeFirePt) {
+    ctx.setLineDash([2, 2]);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ptNozzle.cx, ptNozzle.cy);
+    ctx.lineTo(activeFirePt.cx, activeFirePt.cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   return {

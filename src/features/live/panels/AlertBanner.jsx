@@ -3,7 +3,8 @@ import { AlertTriangle, ShieldAlert, Volume2, VolumeX } from 'lucide-react';
 export function AlertBanner({ isAlertConfirmed, stats, isMuted, setIsMuted }) {
   if (!isAlertConfirmed) return null;
 
-  const isFire = stats.fire_now > 0;
+  // Backend chỉ kích hoạt is_alerting cho lửa. Nếu đang alert thì chắc chắn là lửa.
+  const isFire = stats.fire_now > 0 || stats.is_alerting;
 
   return (
     <div className={`p-5 rounded-3xl flex items-center gap-4 transition-all duration-300 ${
@@ -18,15 +19,15 @@ export function AlertBanner({ isAlertConfirmed, stats, isMuted, setIsMuted }) {
       </div>
       <div className="flex-1 text-left">
         <h3 className="font-extrabold text-base tracking-tight">
-          {isFire ? 'BÁO ĐỘNG ĐÁM CHÁY: PHÁT HIỆN LỬA!' : 'CẢNH BÁO: PHÁT HIỆN CÓ KHÓI LỚN!'}
+          {isFire ? 'BÁO ĐỘNG: PHÁT HIỆN ĐÁM CHÁY!' : 'CẢNH BÁO: PHÁT HIỆN KHÓI BẤT THƯỜNG!'}
         </h3>
-        <p className="text-[11px] opacity-80 mt-0.5">Hệ thống trí tuệ nhân tạo YOLO đã phát hiện sự cố nguy hiểm. Đang phát còi báo động.</p>
+        <p className="text-[11px] opacity-80 mt-0.5">Hệ thống camera AI đã phát hiện sự cố tại khu vực giám sát. Khẩn trương kiểm tra.</p>
       </div>
       <button
         onClick={() => setIsMuted(!isMuted)}
         className="bg-white/10 hover:bg-white/15 p-3 rounded-2xl text-slate-300 transition-all cursor-pointer"
       >
-        {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-indigo-400 animate-pulse" />}
+        {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-sky-400 animate-pulse" />}
       </button>
     </div>
   );

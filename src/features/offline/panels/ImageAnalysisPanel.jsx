@@ -9,9 +9,9 @@ export function ImageAnalysisPanel({
       <div className="space-y-4 lg:col-span-1">
         <h3 className="text-slate-200 font-bold text-sm">Tải Ảnh Lên</h3>
 
-        <div className="border-2 border-dashed border-[#27273a] hover:border-indigo-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center bg-[#181a24] text-center min-h-[160px] relative">
+        <div className="border-2 border-dashed border-[#27273a] hover:border-sky-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center bg-[#181a24] text-center min-h-[160px] relative">
           <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-          <Upload className="w-8 h-8 text-indigo-400 mb-2" />
+          <Upload className="w-8 h-8 text-sky-400 mb-2" />
           <span className="text-xs font-semibold text-slate-300">Click hoặc kéo thả file ảnh</span>
           <span className="text-[10px] text-slate-500 mt-1">Định dạng JPG, PNG, WEBP tối đa 10MB</span>
         </div>
@@ -65,7 +65,7 @@ export function ImageAnalysisPanel({
           <div className="bg-[#0b0c10] rounded-2xl overflow-hidden flex items-center justify-center min-h-[320px] relative">
             {loadingImage && (
               <div className="absolute inset-0 bg-[#0b0c10]/80 flex flex-col items-center justify-center text-slate-400 gap-2 z-10">
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-xs font-semibold">Đang suy luận mô hình AI...</p>
               </div>
             )}
@@ -85,14 +85,14 @@ export function ImageAnalysisPanel({
         <div className="bg-[#181a24] rounded-3xl p-5 space-y-3 shadow-inner">
           <div className="flex justify-between items-center">
             <h3 className="text-slate-200 font-bold text-sm flex items-center gap-1.5">
-              <Code className="w-4.5 h-4.5 text-indigo-400" /> Dữ Liệu Kết Quả JSON
+              <Code className="w-4.5 h-4.5 text-sky-400" /> Dữ Liệu Kết Quả JSON
             </h3>
             {imageResult && (
               <button
                 onClick={handleCopyJSON}
                 className="bg-white/5 hover:bg-white/10 px-3.5 py-1.5 rounded-full text-slate-300 hover:text-slate-100 transition text-[9px] font-bold flex items-center gap-1 cursor-pointer"
               >
-                <Copy className="w-3.5 h-3.5 text-indigo-400" /> Sao Chép JSON
+                <Copy className="w-3.5 h-3.5 text-sky-400" /> Sao Chép JSON
               </button>
             )}
           </div>

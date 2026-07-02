@@ -4,8 +4,8 @@ export function SubTabSwitcher({ activeSubTab, setActiveSubTab }) {
   const btnClass = (tab) =>
     `flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all duration-300 ${
       activeSubTab === tab
-        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-        : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+        ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25'
+        : 'text-slate-400 hover:text-sky-600 hover:bg-sky-500/10'
     }`;
 
   return (

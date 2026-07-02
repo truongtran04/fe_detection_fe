@@ -16,7 +16,11 @@ export function CalibrationRow({
   activeCornerCount, handleStartSequentialPlacement,
   esp32Ip, setEsp32Ip,
   pumpOn, pumpLoading, handleTogglePump,
-  targetingMode, setTargetingMode
+  targetingMode, setTargetingMode,
+  autoPumpEnabled, setAutoPumpEnabled,
+  
+  // Video Calibration Background props
+  activeStreamType, videoRef, wsCapCanvasRef
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
@@ -57,19 +61,44 @@ export function CalibrationRow({
               </select>
             </div>
 
+            {/* Auto Pump Toggle (Switch Slider) */}
+            <div className="flex items-center justify-between pt-1 pb-1">
+              <label 
+                className="text-[9px] text-slate-300 font-bold uppercase tracking-wider cursor-pointer select-none" 
+                htmlFor="auto-pump-toggle"
+              >
+                Tự động bật bơm:
+              </label>
+              <button
+                type="button"
+                id="auto-pump-toggle"
+                onClick={() => setAutoPumpEnabled(!autoPumpEnabled)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  autoPumpEnabled ? 'bg-sky-500 shadow-md shadow-sky-500/20' : 'bg-slate-800'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    autoPumpEnabled ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Motor Pump manual control */}
             <div className="pt-1 flex flex-col gap-2 bg-[#181a24]/40 p-2 rounded-lg border border-slate-800/30">
-              <div>
-                <span className="text-[10px] font-bold text-slate-300 block">Bơm Nước</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider">Bơm Nước</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${pumpOn ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></span>
               </div>
               <button
                 type="button"
                 onClick={handleTogglePump}
                 disabled={pumpLoading}
-                className={`w-full py-1.5 px-2 rounded text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all duration-300 shadow ${
+                className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-300 shadow ${
                   pumpOn
-                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/20'
+                    ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 shadow-red-950/10'
+                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 shadow-emerald-950/10'
                 }`}
               >
                 {pumpLoading ? (
@@ -86,15 +115,15 @@ export function CalibrationRow({
         {/* Hiệu Chuẩn & Nhắm Bắn */}
         <div className="glass-panel rounded-lg p-4 flex flex-col justify-start space-y-3">
           <div className="flex items-center gap-2 pb-0.5 text-slate-200">
-            <div className="p-1.5 bg-indigo-500/10 rounded-lg">
-              <Sliders className="w-4 h-4 text-indigo-400 shrink-0" />
+            <div className="p-1.5 bg-sky-500/10 rounded-lg">
+              <Sliders className="w-4 h-4 text-sky-400 shrink-0" />
             </div>
             <h2 className="font-bold text-xs">Hiệu Chuẩn</h2>
           </div>
 
           <div className="space-y-1 text-[11px]">
             <label className="text-[9px] text-slate-400 font-bold uppercase block tracking-wider font-semibold">Chế độ Servo:</label>
-            <div className="w-full bg-[#181a24] rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-indigo-400 border border-indigo-900/30">
+            <div className="w-full bg-[#181a24] rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-sky-400 border border-sky-900/30">
               Delta (Tương đối)
             </div>
           </div>
@@ -135,12 +164,12 @@ export function CalibrationRow({
         <div className="flex justify-between items-center pb-2.5 mb-3.5">
           <div>
             <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-pink-400" /> Mặt Phẳng Trần Nhà (Ceiling View)
+              <Layers className="w-4 h-4 text-pink-400" /> Mặt Phẳng Trần Nhà
             </h3>
-            <span className="text-[10px] text-slate-500 block mt-0.5">Cuộn để zoom, kéo nền để pan. Kéo thả Camera/Vòi Phun/Lửa để tính góc.</span>
+            <span className="text-[10px] text-slate-500 block mt-0.5">Cuộn để zoom, kéo nền để pan. Kéo thả Camera/Vòi Phun/Lửa để tính góc, để biết đốm đó đang nằm ở đâu.</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950/30 px-2 py-0.5 rounded-lg">
+            <span className="text-[10px] font-mono text-sky-400 bg-sky-950/30 px-2 py-0.5 rounded-lg">
               {Math.round(ceilingZoom * 100)}%
             </span>
             <button
@@ -174,11 +203,11 @@ export function CalibrationRow({
             <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <Grid className="w-4 h-4 text-emerald-400" /> Hình Ảnh CCTV
             </h3>
-            <span className="text-[10px] text-slate-500 block mt-0.5">Cuộn để zoom, kéo nền để pan. Kéo C1–C4 định vị góc sàn (có thể kéo ra ngoài ảnh).</span>
+            <span className="text-[10px] text-slate-500 block mt-0.5">Cuộn để zoom, kéo nền để pan. Khi nhấn bắn thì đốm lửa sẽ được hiển thị ở Mặt Phẳng Trần Nhà.</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {imageLoaded && (
-              <div className="text-[9px] bg-indigo-950/20 text-indigo-400 font-bold px-2 py-0.5 rounded-full font-mono">
+              <div className="text-[9px] bg-sky-950/20 text-sky-400 font-bold px-2 py-0.5 rounded-full font-mono">
                 {imageSize.w}×{imageSize.h}
               </div>
             )}
@@ -205,19 +234,19 @@ export function CalibrationRow({
                 type="button"
                 onClick={() => setCctvInteractionMode('points')}
                 className={`px-2.5 py-1 rounded-md transition-all duration-200 cursor-pointer ${
-                  cctvInteractionMode === 'points' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'
+                  cctvInteractionMode === 'points' ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400'
                 }`}
               >
-                🎯 Điểm
+                Điểm
               </button>
               <button
                 type="button"
                 onClick={() => setCctvInteractionMode('pan')}
                 className={`px-2.5 py-1 rounded-md transition-all duration-200 cursor-pointer ${
-                  cctvInteractionMode === 'pan' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'
+                  cctvInteractionMode === 'pan' ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400'
                 }`}
               >
-                ✋ Kéo nền
+                Kéo nền
               </button>
             </div>
           </div>
@@ -230,7 +259,7 @@ export function CalibrationRow({
             <button
               type="button"
               onClick={handleStartSequentialPlacement}
-              className="text-[9px] bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-2.5 py-1 rounded-lg text-indigo-400 hover:text-indigo-200 transition font-bold cursor-pointer"
+              className="text-[9px] bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 px-2.5 py-1 rounded-lg text-sky-400 hover:text-sky-200 transition font-bold cursor-pointer"
             >
               Chấm lại 4 góc
             </button>
@@ -238,6 +267,9 @@ export function CalibrationRow({
         </div>
 
         <div className="flex-1 bg-[#0b0c10] rounded-lg flex items-center justify-center relative overflow-hidden shadow-inner select-none min-h-[450px]">
+          <video ref={videoRef} className="hidden" width="640" height="360" playsInline muted></video>
+          <canvas ref={wsCapCanvasRef} className="hidden" width="640" height="360"></canvas>
+
           {imageSrc ? (
             <img
               ref={imageRef}
@@ -254,7 +286,7 @@ export function CalibrationRow({
               }}
             />
           ) : (
-            <span className="text-xs text-slate-600">Chưa có ảnh — tải ảnh CCTV ở cột bên trái</span>
+            <span className="text-xs text-slate-600">Chưa có ảnh — tải ảnh CCTV hoặc kích hoạt video ở cột bên trái</span>
           )}
           <canvas
             ref={cctvCanvasRef}

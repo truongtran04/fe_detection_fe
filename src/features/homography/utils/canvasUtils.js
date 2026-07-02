@@ -1,3 +1,5 @@
+import { ZOOM_MIN, ZOOM_MAX } from '../constants.js';
+
 export const getMousePosOnCanvas = (e, canvas) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / (rect.width || 1);
@@ -34,12 +36,13 @@ export const drawPoint = (ctx, cx, cy, color, radius, label, coords, align = 'ri
   }
 };
 
+
 export const attachCanvasWheelZoom = (canvas, setZoom) => {
   const handleWheel = (e) => {
     e.preventDefault();
     setZoom(prev => {
       const nextZoom = e.deltaY < 0 ? prev * 1.1 : prev / 1.1;
-      return Math.max(0.5, Math.min(5.0, nextZoom));
+      return Math.max(ZOOM_MIN || 0.25, Math.min(ZOOM_MAX || 5.0, nextZoom));
     });
   };
   canvas.addEventListener('wheel', handleWheel, { passive: false });

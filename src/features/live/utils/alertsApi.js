@@ -6,7 +6,6 @@ export const logAlert = async (level, message) => {
       body: JSON.stringify({ level, message })
     });
   } catch {
-    // quiet fail
   }
 };
 

@@ -44,7 +44,7 @@ export function SimulationRow({
                       </td>
                       <td className="p-1.5 font-mono whitespace-nowrap">[{t.pixel[0]}, {t.pixel[1]}]</td>
                       <td className="p-1.5 font-mono whitespace-nowrap">[{t.real[0].toFixed(2)}, {t.real[1].toFixed(2)}]</td>
-                      <td className="p-1.5 text-indigo-400 font-bold whitespace-nowrap">{t.pan}°</td>
+                      <td className="p-1.5 text-sky-400 font-bold whitespace-nowrap">{t.pan}°</td>
                       <td className="p-1.5 text-amber-500 font-bold whitespace-nowrap">{t.tilt}°</td>
                       <td className="p-1.5 text-emerald-400 font-mono font-bold whitespace-nowrap">{t.serial}</td>
                     </tr>
@@ -60,7 +60,7 @@ export function SimulationRow({
           <div>
             <div className="flex justify-between items-center pb-2">
               <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Terminal className="w-4 h-4 text-indigo-400" /> Log Kết Quả Bắn Laser (Console)
+                <Terminal className="w-4 h-4 text-sky-400" /> Log Kết Quả Bắn Laser (Console)
               </span>
               <button
                 onClick={handleCopyLog}
@@ -84,8 +84,8 @@ export function SimulationRow({
             <h3 className="font-bold text-sm">Mô Phỏng Không Gian 3D</h3>
           </div>
           <div className="flex bg-[#0b0c10] p-1 rounded-lg text-[9px] font-bold shadow-inner">
-            <button onClick={() => setActive3DTab('interactive')} className={`px-2.5 py-0.5 rounded transition-all duration-200 cursor-pointer ${active3DTab === 'interactive' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}>3D Tương Tác</button>
-            <button onClick={() => setActive3DTab('static')} className={`px-2.5 py-0.5 rounded transition-all duration-200 cursor-pointer ${active3DTab === 'static' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}>3D Tĩnh</button>
+            <button onClick={() => setActive3DTab('interactive')} className={`px-2.5 py-0.5 rounded transition-all duration-200 cursor-pointer ${active3DTab === 'interactive' ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400'}`}>3D Tương Tác</button>
+            <button onClick={() => setActive3DTab('static')} className={`px-2.5 py-0.5 rounded transition-all duration-200 cursor-pointer ${active3DTab === 'static' ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400'}`}>3D Tĩnh</button>
           </div>
         </div>
 
@@ -97,14 +97,14 @@ export function SimulationRow({
               {singleTarget && (
                 <div className="absolute top-3 left-3 bg-[#0b0c10]/95 p-3.5 rounded-lg font-mono text-[9px] space-y-1.5 z-10 text-left shadow-lg border border-slate-800/40">
                   <div className="text-red-500 font-bold mb-1 flex items-center gap-1.5"><Target className="w-3 h-3 animate-pulse" /> TARGET HUD</div>
-                  <div>Góc Pan (θ): <span className="text-indigo-400 font-bold">{singleTarget.pan}°</span></div>
+                  <div>Góc Pan (θ): <span className="text-sky-400 font-bold">{singleTarget.pan}°</span></div>
                   <div>Góc Tilt (α): <span className="text-amber-500 font-bold">{singleTarget.tilt}°</span></div>
                   <div className="text-emerald-400 pt-1 mt-1 font-bold">Lệnh: {singleTarget.serial}</div>
                 </div>
               )}
 
               <div className="absolute top-3 right-3 bg-[#0b0c10]/95 p-3.5 rounded-lg font-mono text-[9px] space-y-1.5 z-10 text-left shadow-lg border border-slate-800/40">
-                <div className="text-white font-bold mb-1 flex items-center gap-1.5"><Settings className="w-3 h-3 text-indigo-400" /> CHÚ THÍCH GÓC 3D</div>
+                <div className="text-white font-bold mb-1 flex items-center gap-1.5"><Settings className="w-3 h-3 text-sky-400" /> CHÚ THÍCH GÓC 3D</div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-0.5 bg-sky-400 inline-block"></span>
                   <span>θ Pan: Cung ngang (XZ) tới đích</span>
@@ -122,7 +122,7 @@ export function SimulationRow({
                   <span>Màu Vàng: CCTV</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-0.5 bg-indigo-400 inline-block"></span>
+                  <span className="w-2.5 h-0.5 bg-sky-400 inline-block"></span>
                   <span>C1/C2/C3/C4: Góc tường</span>
                 </div>
               </div>
